@@ -1,0 +1,265 @@
+{
+  "errorTypes": [
+    "API_TOKEN_NOT_FOUND",
+    "BAD_CONTENT_TYPE_ERROR",
+    "EMPTY_BODY_ERROR",
+    "FORM_VALIDATION_ERROR",
+    "INVALID_CREDENTIALS",
+    "ROUTE_NOT_FOUND",
+    "UNKNOWN_ERROR",
+    "USER_ALREADY_EXISTS",
+    "USER_NOT_FOUND",
+    "VALIDATION_ERROR"
+  ],
+  "types": [
+    {
+      "name": "GetSystemInfo",
+      "extend": "",
+      "fields": [
+        {
+          "name": "version",
+          "type": "string",
+          "omit": false
+        }
+      ]
+    },
+    {
+      "name": "Signup",
+      "extend": "",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "omit": false
+        },
+        {
+          "name": "username",
+          "type": "string",
+          "omit": false
+        }
+      ]
+    },
+    {
+      "name": "SignupBody",
+      "extend": "",
+      "fields": [
+        {
+          "name": "username",
+          "type": "string",
+          "omit": false
+        },
+        {
+          "name": "password",
+          "type": "string",
+          "omit": false
+        },
+        {
+          "name": "passwordConfirm",
+          "type": "string",
+          "omit": false
+        }
+      ]
+    },
+    {
+      "name": "Signin",
+      "extend": "",
+      "fields": [
+        {
+          "name": "token",
+          "type": "string",
+          "omit": false
+        }
+      ]
+    },
+    {
+      "name": "SigninBody",
+      "extend": "",
+      "fields": [
+        {
+          "name": "username",
+          "type": "string",
+          "omit": false
+        },
+        {
+          "name": "password",
+          "type": "string",
+          "omit": false
+        }
+      ]
+    },
+    {
+      "name": "ChangePasswordBody",
+      "extend": "",
+      "fields": [
+        {
+          "name": "currentPassword",
+          "type": "string",
+          "omit": false
+        },
+        {
+          "name": "newPassword",
+          "type": "string",
+          "omit": false
+        },
+        {
+          "name": "newPasswordConfirm",
+          "type": "string",
+          "omit": false
+        }
+      ]
+    },
+    {
+      "name": "GetMe",
+      "extend": "",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "omit": false
+        },
+        {
+          "name": "username",
+          "type": "string",
+          "omit": false
+        },
+        {
+          "name": "role",
+          "type": "string",
+          "omit": false
+        },
+        {
+          "name": "displayName",
+          "type": "string",
+          "omit": false
+        }
+      ]
+    },
+    {
+      "name": "UpdateUserSettingsBody",
+      "extend": "",
+      "fields": [
+        {
+          "name": "displayName",
+          "type": "*string",
+          "omit": true
+        }
+      ]
+    },
+    {
+      "name": "CreateApiToken",
+      "extend": "",
+      "fields": [
+        {
+          "name": "token",
+          "type": "string",
+          "omit": false
+        }
+      ]
+    },
+    {
+      "name": "CreateApiTokenBody",
+      "extend": "",
+      "fields": [
+        {
+          "name": "name",
+          "type": "string",
+          "omit": false
+        }
+      ]
+    },
+    {
+      "name": "ApiToken",
+      "extend": "",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "omit": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "omit": false
+        }
+      ]
+    },
+    {
+      "name": "GetAllApiTokens",
+      "extend": "",
+      "fields": [
+        {
+          "name": "tokens",
+          "type": "[]ApiToken",
+          "omit": false
+        }
+      ]
+    }
+  ],
+  "apiEndpoints": [
+    {
+      "name": "GetSystemInfo",
+      "method": "GET",
+      "path": "/api/v1/system/info",
+      "responseType": "GetSystemInfo",
+      "bodyType": ""
+    },
+    {
+      "name": "Signup",
+      "method": "POST",
+      "path": "/api/v1/auth/signup",
+      "responseType": "Signup",
+      "bodyType": "SignupBody"
+    },
+    {
+      "name": "Signin",
+      "method": "POST",
+      "path": "/api/v1/auth/signin",
+      "responseType": "Signin",
+      "bodyType": "SigninBody"
+    },
+    {
+      "name": "ChangePassword",
+      "method": "PATCH",
+      "path": "/api/v1/auth/password",
+      "responseType": "",
+      "bodyType": "ChangePasswordBody"
+    },
+    {
+      "name": "GetMe",
+      "method": "GET",
+      "path": "/api/v1/auth/me",
+      "responseType": "GetMe",
+      "bodyType": ""
+    },
+    {
+      "name": "UpdateUserSettings",
+      "method": "PATCH",
+      "path": "/api/v1/user/settings",
+      "responseType": "",
+      "bodyType": "UpdateUserSettingsBody"
+    },
+    {
+      "name": "CreateApiToken",
+      "method": "POST",
+      "path": "/api/v1/user/apitoken",
+      "responseType": "CreateApiToken",
+      "bodyType": "CreateApiTokenBody"
+    },
+    {
+      "name": "GetAllApiTokens",
+      "method": "GET",
+      "path": "/api/v1/user/apitoken",
+      "responseType": "GetAllApiTokens",
+      "bodyType": ""
+    },
+    {
+      "name": "DeleteApiToken",
+      "method": "DELETE",
+      "path": "/api/v1/user/apitoken/:id",
+      "responseType": "",
+      "bodyType": ""
+    }
+  ],
+  "formApiEndpoints": null,
+  "normalEndpoints": null
+}
