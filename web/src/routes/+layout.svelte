@@ -52,7 +52,7 @@
 </script>
 
 <svelte:head>
-  <title>Dwebble</title>
+  <title>Nosepass</title>
 </svelte:head>
 
 <Toaster position="bottom-right" />
@@ -70,7 +70,7 @@
       <Menu size="20" />
     </button>
 
-    <a class="text-2xl font-medium text-[--logo-color]" href="/">Dwebble</a>
+    <a class="text-2xl font-medium text-[--logo-color]" href="/">Nosepass</a>
 
     <div class="flex-grow"></div>
 
