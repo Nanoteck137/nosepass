@@ -16,10 +16,12 @@ import (
 var CreateId = createIdGenerator(32)
 var CreateSmallId = createIdGenerator(8)
 
-var CreateArtistId = createIdGenerator(10)
-var CreateAlbumId = createIdGenerator(16)
-var CreateTrackId = createIdGenerator(32)
-var CreateTrackMediaId = createIdGenerator(32)
+var CreateSerieId = createIdGenerator(10)
+var CreateSeasonId = createIdGenerator(16)
+var CreateEpisodeId = createIdGenerator(32)
+
+var CreateMediaId = createIdGenerator(32)
+var CreateMediaVariantId = createIdGenerator(32)
 
 var CreateApiTokenId = createIdGenerator(32)
 
