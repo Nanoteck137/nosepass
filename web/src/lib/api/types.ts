@@ -71,3 +71,35 @@ export const GetAllApiTokens = z.object({
 });
 export type GetAllApiTokens = z.infer<typeof GetAllApiTokens>;
 
+export const Media = z.object({
+  id: z.string(),
+  path: z.string(),
+});
+export type Media = z.infer<typeof Media>;
+
+export const GetMedia = z.object({
+  media: z.array(Media),
+});
+export type GetMedia = z.infer<typeof GetMedia>;
+
+export const MediaAudio = z.object({
+  index: z.number(),
+  language: z.string(),
+});
+export type MediaAudio = z.infer<typeof MediaAudio>;
+
+export const MediaSubtitle = z.object({
+  index: z.number(),
+  language: z.string(),
+  title: z.string(),
+});
+export type MediaSubtitle = z.infer<typeof MediaSubtitle>;
+
+export const FullMedia = z.object({
+  id: z.string(),
+  path: z.string(),
+  audioTracks: z.array(MediaAudio),
+  subtitles: z.array(MediaSubtitle),
+});
+export type FullMedia = z.infer<typeof FullMedia>;
+

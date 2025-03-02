@@ -43,4 +43,12 @@ export class ApiClient extends BaseApiClient {
   deleteApiToken(id: string, options?: ExtraOptions) {
     return this.request(`/api/v1/user/apitoken/${id}`, "DELETE", z.undefined(), z.any(), undefined, options)
   }
+  
+  getMedia(options?: ExtraOptions) {
+    return this.request("/api/v1/media", "GET", api.GetMedia, z.any(), undefined, options)
+  }
+  
+  getMediaById(id: string, options?: ExtraOptions) {
+    return this.request(`/api/v1/media/${id}`, "GET", api.FullMedia, z.any(), undefined, options)
+  }
 }

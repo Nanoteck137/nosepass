@@ -193,6 +193,96 @@
           "omit": false
         }
       ]
+    },
+    {
+      "name": "Media",
+      "extend": "",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "omit": false
+        },
+        {
+          "name": "path",
+          "type": "string",
+          "omit": false
+        }
+      ]
+    },
+    {
+      "name": "GetMedia",
+      "extend": "",
+      "fields": [
+        {
+          "name": "media",
+          "type": "[]Media",
+          "omit": false
+        }
+      ]
+    },
+    {
+      "name": "MediaAudio",
+      "extend": "",
+      "fields": [
+        {
+          "name": "index",
+          "type": "int",
+          "omit": false
+        },
+        {
+          "name": "language",
+          "type": "string",
+          "omit": false
+        }
+      ]
+    },
+    {
+      "name": "MediaSubtitle",
+      "extend": "",
+      "fields": [
+        {
+          "name": "index",
+          "type": "int",
+          "omit": false
+        },
+        {
+          "name": "language",
+          "type": "string",
+          "omit": false
+        },
+        {
+          "name": "title",
+          "type": "string",
+          "omit": false
+        }
+      ]
+    },
+    {
+      "name": "FullMedia",
+      "extend": "",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "omit": false
+        },
+        {
+          "name": "path",
+          "type": "string",
+          "omit": false
+        },
+        {
+          "name": "audioTracks",
+          "type": "[]MediaAudio",
+          "omit": false
+        },
+        {
+          "name": "subtitles",
+          "type": "[]MediaSubtitle",
+          "omit": false
+        }
+      ]
     }
   ],
   "apiEndpoints": [
@@ -258,8 +348,33 @@
       "path": "/api/v1/user/apitoken/:id",
       "responseType": "",
       "bodyType": ""
+    },
+    {
+      "name": "GetMedia",
+      "method": "GET",
+      "path": "/api/v1/media",
+      "responseType": "GetMedia",
+      "bodyType": ""
+    },
+    {
+      "name": "GetMediaById",
+      "method": "GET",
+      "path": "/api/v1/media/:id",
+      "responseType": "FullMedia",
+      "bodyType": ""
     }
   ],
   "formApiEndpoints": null,
-  "normalEndpoints": null
+  "normalEndpoints": [
+    {
+      "name": "GetPlaylist",
+      "method": "GET",
+      "path": "/:id/index.m3u8"
+    },
+    {
+      "name": "GetSegment",
+      "method": "GET",
+      "path": "/:id/:segment"
+    }
+  ]
 }

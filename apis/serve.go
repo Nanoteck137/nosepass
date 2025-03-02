@@ -6,48 +6,57 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"strconv"
 
 	"github.com/nanoteck137/nosepass"
 	"github.com/nanoteck137/nosepass/core"
 	"github.com/nanoteck137/pyrin"
-	"gopkg.in/vansante/go-ffprobe.v2"
 )
 
 const hlsSegmentLength float64 = 5
 
 func RegisterHandlers(app core.App, router pyrin.Router) {
 	g := router.Group("/api/v1")
-	InstallHandlers(app, g)
+	InstallSystemHandlers(app, g)
+	InstallAuthHandlers(app, g)
+	InstallUserHandlers(app, g)
+	InstallMediaHandlers(app, g)
 
 	g = router.Group("")
 	g.Register(
 		pyrin.NormalHandler{
 			Name:   "GetPlaylist",
 			Method: http.MethodGet,
-			Path:   "/:index/index.m3u8",
+			Path:   "/:id/index.m3u8",
 			HandlerFunc: func(c pyrin.Context) error {
-				index, err := strconv.Atoi(c.Param("index"))
-				if err != nil {
-					return err
-				}
+				id := c.Param("id")
 
-				p := "/Users/nanoteck137/anime/Alya Sometimes Hides Her Feelings in Russian S01E01.mkv"
-				fmt.Printf("p: %v\n", p)
+				url := c.Request().URL
+				audio, _ := strconv.ParseInt(url.Query().Get("audio"), 10, 0)
+
+				var subtitle int64 = -1
+
+				s := url.Query().Get("subtitle")
+				if s != "" {
+					subtitle, _ = strconv.ParseInt(s, 10, 0)
+				}
 
 				ctx := context.TODO()
-				data, err := ffprobe.ProbeURL(ctx, p)
+
+				media, err := app.DB().GetMediaById(ctx, id)
 				if err != nil {
+					// TODO(patrik): Handle error
 					return err
 				}
 
-				c.Response().Header().Set("Content-Type", "application/vnd.apple.mpegurl")
-
-				duration := data.Format.DurationSeconds
+				videoTracks := media.VideoTracks.GetOrEmpty()
+				duration := videoTracks[0].Duration
 
 				w := c.Response()
+				w.Header().Set("Content-Type", "application/vnd.apple.mpegurl")
 
-				// NOTE(patrik): Based on the code from: 
+				// NOTE(patrik): Based on the code from:
 				// https://github.com/shimberger/gohls/blob/master/internal/hls/playlist.go
 				fmt.Fprint(w, "#EXTM3U\n")
 				fmt.Fprint(w, "#EXT-X-VERSION:3\n")
@@ -69,8 +78,8 @@ func RegisterHandlers(app core.App, router pyrin.Router) {
 					// fmt.Fprintf(w, getUrl(segmentIndex)+"\n")
 					// fmt.Fprintf(w, "segment%d.ts\n", segmentIndex)
 
-					u := ConvertURL(c, fmt.Sprintf("/%d/segment%d.ts", index, segmentIndex))
-					fmt.Fprint(w, u + "\n")
+					u := ConvertURL(c, fmt.Sprintf("/%v/segment%d.ts?audio=%d&subtitle=%d", id, segmentIndex, audio, subtitle))
+					fmt.Fprint(w, u+"\n")
 
 					leftover = leftover - hlsSegmentLength
 					segmentIndex++
@@ -84,17 +93,23 @@ func RegisterHandlers(app core.App, router pyrin.Router) {
 		pyrin.NormalHandler{
 			Name:   "GetSegment",
 			Method: http.MethodGet,
-			Path:   "/:index/:segment",
+			Path:   "/:id/:segment",
 			HandlerFunc: func(c pyrin.Context) error {
-				index, err := strconv.Atoi(c.Param("index"))
+				id := c.Param("id")
+
+				url := c.Request().URL
+				audio, _ := strconv.ParseInt(url.Query().Get("audio"), 10, 0)
+				subtitle, _ := strconv.ParseInt(url.Query().Get("subtitle"), 10, 0)
+
+				ctx := context.TODO()
+
+				media, err := app.DB().GetMediaById(ctx, id)
 				if err != nil {
+					// TODO(patrik): Handle error
 					return err
 				}
 
-				_ = index
-
 				segment := c.Param("segment")
-				fmt.Printf("segment: %v\n", segment)
 
 				var segmentIndex int
 				_, err = fmt.Sscanf(segment, "segment%d.ts", &segmentIndex)
@@ -102,23 +117,21 @@ func RegisterHandlers(app core.App, router pyrin.Router) {
 					return err
 				}
 
-				// p := "/Users/nanoteck137/anime/Alya Sometimes Hides Her Feelings in Russian S01E01.mkv"
-				p := "/Users/nanoteck137/anime/Arifureta Shokugyou de Sekai Saikyou Episode 1.mp4"
-
-				// ctx := context.TODO()
-				// data, err := ffprobe.ProbeURL(ctx, p)
-				// if err != nil {
-				// 	return err
-				// }
-				//
-				// _ = data
-
 				startTime := float64(segmentIndex) * hlsSegmentLength
 
-				sub := "/Users/nanoteck137/projects/transboder/work/metadata/c41e2c95fdd378d4196631ef6330aaae0524b8f7/sub/1.ass"
-				_ = sub
+				mediaDir := app.WorkDir().MediaIdDir(media.Id)
 
-				// NOTE(patrik): Based on the code from: 
+				const videoFormat = "format=yuv420p"
+
+				vfilter := videoFormat
+				if subtitle != -1 {
+					subtitle := media.Subtitles.GetOrEmpty()[subtitle]
+					sub := path.Join(mediaDir.Subtitles(), subtitle.Filename)
+
+					vfilter = fmt.Sprintf("%s,subtitles=%s", videoFormat, sub)
+				}
+
+				// NOTE(patrik): Based on the code from:
 				// https://github.com/shimberger/gohls/blob/master/internal/hls/segment.go
 				args := []string{
 					"-nostats",
@@ -130,11 +143,11 @@ func RegisterHandlers(app core.App, router pyrin.Router) {
 
 					"-hwaccel", "auto",
 
-					"-i", p,
+					"-i", media.Path,
 
 					// "-start_at_zero",
 					"-copyts",
-					// "-muxdelay", "0",
+					"-muxdelay", "0",
 
 					"-map", "0:V:0",
 
@@ -143,23 +156,20 @@ func RegisterHandlers(app core.App, router pyrin.Router) {
 					"-strict", "-2",
 
 					"-ss", fmt.Sprintf("%v.00", startTime),
-					// "-filter:v", fmt.Sprintf("subtitles=%s", sub),
+					// "-filter:v", fmt.Sprintf("format=yuv420p,subtitles=%s", sub),
+					// "-filter:v", "format=yuv420p",
+					"-filter:v", vfilter,
 
-					// "-async", "1",
-
-					// 720p
-					// "-vf", fmt.Sprintf("scale=-2:%v", res),
-
-					"-vcodec", "libx264",
+					"-c:v", "libx264",
+					"-crf", "18",
 					"-preset", "veryfast",
+					// "-preset", "ultrafast",
 
-					"-map", "0:a:0",
+					"-map", fmt.Sprintf("0:a:%d", audio),
 
 					"-c:a", "aac",
 					"-b:a", "128k",
 					"-ac", "2",
-
-					// "-pix_fmt", "yuv420p",
 
 					"-force_key_frames", "expr:gte(t,n_forced*5.000)",
 
@@ -181,7 +191,6 @@ func RegisterHandlers(app core.App, router pyrin.Router) {
 				if err != nil {
 					return nil
 				}
-
 
 				return nil
 			},

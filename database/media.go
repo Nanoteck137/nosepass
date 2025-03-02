@@ -16,8 +16,13 @@ type MediaChapter struct {
 }
 
 type MediaSubtitle struct {
-	Index         int `json:"index"`
-	SubtitleIndex int `json:"subtitleIndex"`
+	Index         int    `json:"index"`
+	SubtitleIndex int    `json:"subtitleIndex"`
+	Type          string `json:"type"`
+	Title         string `json:"title"`
+	Language      string `json:"language"`
+	IsDefault     bool   `json:"isDefault"`
+	Filename string `json:"filename"`
 }
 
 type MediaAttachment struct {
@@ -26,8 +31,9 @@ type MediaAttachment struct {
 }
 
 type MediaVideoTrack struct {
-	Index      int `json:"index"`
-	VideoIndex int `json:"videoIndex"`
+	Index      int     `json:"index"`
+	VideoIndex int     `json:"videoIndex"`
+	Duration   float64 `json:"duration"`
 }
 
 type MediaAudioTrack struct {

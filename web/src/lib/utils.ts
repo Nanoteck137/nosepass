@@ -28,3 +28,19 @@ export function convertValue<T>(val: CheckedValue<T>): T | undefined {
 
   return undefined;
 }
+
+export function shouldDisplayHour(duration: number) {
+  return duration >= 1 * 60 * 60;
+}
+
+export function formatTime(s: number, displayHour: boolean) {
+  const hour = Math.floor(s / 60 / 60);
+  const min = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+
+  if (displayHour) {
+    return `${hour}:${min.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
+  } else {
+    return `${min}:${sec.toString().padStart(2, "0")}`;
+  }
+}
