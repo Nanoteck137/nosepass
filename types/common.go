@@ -2,16 +2,6 @@ package types
 
 import "path"
 
-type MediaType string
-
-const (
-	MediaTypeFlac      MediaType = "flac"
-	MediaTypeOggOpus   MediaType = "ogg-opus"
-	MediaTypeOggVorbis MediaType = "ogg-vorbis"
-	MediaTypeMp3       MediaType = "mp3"
-	MediaTypeAcc       MediaType = "acc"
-)
-
 type Map map[string]any
 
 type WorkDir string
