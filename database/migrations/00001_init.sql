@@ -83,13 +83,19 @@ CREATE TABLE media_variants (
     language TEXT NOT NULL,
     video_track INTEGER NOT NULL,
     audio_track INTEGER NOT NULL,
-    subtitle TEXT,
+    subtitle INTEGER,
 
     created INTEGER NOT NULL,
     updated INTEGER NOT NULL
 );
 
+CREATE TABLE media_episodes (
+    media_id TEXT NOT NULL REFERENCES media(id) ON DELETE CASCADE,
+    episode_id TEXT NOT NULL REFERENCES episodes(id) ON DELETE CASCADE
+);
+
 -- +goose Down
+DROP TABLE media_episodes;
 DROP TABLE media_variants;
 DROP TABLE media;
 

@@ -16,11 +16,11 @@ type MediaVariant struct {
 	Id      string `db:"id"`
 	MediaId string `db:"media_id"`
 
-	Name       string         `db:"name"`
-	Language   string         `db:"language"`
-	VideoTrack int            `db:"video_track"`
-	AudioTrack int            `db:"audio_track"`
-	Subtitle   sql.NullString `db:"subtitle"`
+	Name       string        `db:"name"`
+	Language   string        `db:"language"`
+	VideoTrack int           `db:"video_track"`
+	AudioTrack int           `db:"audio_track"`
+	Subtitle   sql.NullInt64 `db:"subtitle"`
 
 	Created int64 `db:"created"`
 	Updated int64 `db:"updated"`
@@ -75,7 +75,7 @@ type CreateMediaVariantParams struct {
 	Language   string
 	VideoTrack int
 	AudioTrack int
-	Subtitle   sql.NullString
+	Subtitle   sql.NullInt64
 
 	Created int64
 	Updated int64
@@ -142,7 +142,7 @@ type MediaVariantChanges struct {
 	Language   types.Change[string]
 	VideoTrack types.Change[int]
 	AudioTrack types.Change[int]
-	Subtitle   types.Change[sql.NullString]
+	Subtitle   types.Change[sql.NullInt64]
 
 	Created types.Change[int64]
 }

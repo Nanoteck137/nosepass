@@ -74,6 +74,16 @@ func (db *Database) GetSeasonById(ctx context.Context, id string) (Season, error
 	return item, nil
 }
 
+func (db *Database) GetSeason(ctx context.Context, serieId string, seasonNumber int) (Season, error) {
+	query := SeasonQuery().
+		Where(
+			goqu.I("seasons.serie_id").Eq(serieId),
+			goqu.I("seasons.number").Eq(seasonNumber),
+		)
+
+	return single[Season](db, query)
+}
+
 type CreateSeasonParams struct {
 	Id      string
 	SerieId string

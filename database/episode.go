@@ -57,6 +57,19 @@ func (db *Database) GetAllEpisodes(ctx context.Context, filterStr, sortStr strin
 	return items, nil
 }
 
+func (db *Database) GetEpisodes(ctx context.Context, seasonId string) ([]Episode, error) {
+	query := EpisodeQuery().
+		Where(goqu.I("episodes.season_id").Eq(seasonId))
+
+	var items []Episode
+	err := db.Select(&items, query)
+	if err != nil {
+		return nil, err
+	}
+
+	return items, nil
+}
+
 func (db *Database) GetEpisodeById(ctx context.Context, id string) (Episode, error) {
 	query := EpisodeQuery().
 		Where(goqu.I("episodes.id").Eq(id))

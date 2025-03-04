@@ -2,9 +2,11 @@ package database
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/doug-martin/goqu/v9"
+	"github.com/mattn/go-sqlite3"
 	"github.com/nanoteck137/nosepass/tools/utils"
 	"github.com/nanoteck137/nosepass/types"
 )
@@ -22,7 +24,7 @@ type MediaSubtitle struct {
 	Title         string `json:"title"`
 	Language      string `json:"language"`
 	IsDefault     bool   `json:"isDefault"`
-	Filename string `json:"filename"`
+	Filename      string `json:"filename"`
 }
 
 type MediaAttachment struct {
@@ -42,6 +44,16 @@ type MediaAudioTrack struct {
 	Language   string `json:"language"`
 }
 
+type MediaVariantInfo struct {
+	Id string `json:"id"`
+
+	Name       string `json:"name"`
+	Language   string `json:"language"`
+	VideoTrack int    `json:"video_track"`
+	AudioTrack int    `json:"audio_track"`
+	Subtitle   *int64 `json:"subtitle"`
+}
+
 type Media struct {
 	RowId int `db:"rowid"`
 
@@ -57,9 +69,35 @@ type Media struct {
 
 	Created int64 `db:"created"`
 	Updated int64 `db:"updated"`
+
+	Variants JsonColumn[[]MediaVariantInfo] `db:"variants"`
 }
 
 func MediaQuery() *goqu.SelectDataset {
+	variants := dialect.From("media_variants").
+		Select(
+			goqu.I("media_variants.media_id").As("media_id"),
+
+			goqu.Func(
+				"json_group_array",
+				goqu.Func(
+					"json_object",
+
+					"name",
+					goqu.I("media_variants.id"),
+					"language",
+					goqu.I("media_variants.language"),
+					"video_track",
+					goqu.I("media_variants.video_track"),
+					"audio_track",
+					goqu.I("media_variants.audio_track"),
+					"subtitle",
+					goqu.I("media_variants.subtitle"),
+				),
+			).As("variants"),
+		).
+		GroupBy(goqu.I("media_variants.media_id"))
+
 	query := dialect.From("media").
 		Select(
 			"media.rowid",
@@ -76,8 +114,14 @@ func MediaQuery() *goqu.SelectDataset {
 
 			"media.updated",
 			"media.created",
+
+			goqu.I("variants.variants").As("variants"),
 		).
-		Prepared(true)
+		Prepared(true).
+		LeftJoin(
+			variants.As("variants"),
+			goqu.On(goqu.I("media.id").Eq(goqu.I("variants.media_id"))),
+		)
 
 	return query
 }
@@ -230,6 +274,42 @@ func (db *Database) DeleteMedia(ctx context.Context, id string) error {
 
 	_, err := db.Exec(ctx, query)
 	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *Database) DeleteAllMediaEpisodes(ctx context.Context, mediaId string) error {
+	query := dialect.Delete("media_episodes").
+		Prepared(true).
+		Where(goqu.I("media_episodes.media_id").Eq(mediaId))
+
+	_, err := db.Exec(ctx, query)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *Database) AddMediaToEpisode(ctx context.Context, mediaId, episodeId string) error {
+	query := dialect.Insert("media_episodes").
+		Prepared(true).
+		Rows(goqu.Record{
+			"media_id":   mediaId,
+			"episode_id": episodeId,
+		})
+
+	_, err := db.Exec(ctx, query)
+	if err != nil {
+		var sqlErr sqlite3.Error
+		if errors.As(err, &sqlErr) {
+			if sqlErr.ExtendedCode == sqlite3.ErrConstraintPrimaryKey {
+				return ErrItemAlreadyExists
+			}
+		}
+
 		return err
 	}
 

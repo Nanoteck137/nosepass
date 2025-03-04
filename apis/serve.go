@@ -22,8 +22,9 @@ func RegisterHandlers(app core.App, router pyrin.Router) {
 	InstallAuthHandlers(app, g)
 	InstallUserHandlers(app, g)
 	InstallMediaHandlers(app, g)
+	InstallLibraryHandlers(app, g)
 
-	g = router.Group("")
+	g = router.Group("/api/media")
 	g.Register(
 		pyrin.NormalHandler{
 			Name:   "GetPlaylist",

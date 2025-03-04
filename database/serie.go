@@ -2,8 +2,6 @@ package database
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"time"
 
 	"github.com/doug-martin/goqu/v9"
@@ -53,17 +51,14 @@ func (db *Database) GetSerieById(ctx context.Context, id string) (Serie, error) 
 	query := SerieQuery().
 		Where(goqu.I("series.id").Eq(id))
 
-	var item Serie
-	err := db.Get(&item, query)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return Serie{}, ErrItemNotFound
-		}
+	return single[Serie](db, query)
+}
 
-		return Serie{}, err
-	}
+func (db *Database) GetSerieByName(ctx context.Context, name string) (Serie, error) {
+	query := SerieQuery().
+		Where(goqu.I("series.name").Eq(name))
 
-	return item, nil
+	return single[Serie](db, query)
 }
 
 type CreateSerieParams struct {
