@@ -194,8 +194,7 @@ func syncLibrary(app core.App) error {
 						return err
 					}
 
-					// TODO(patrik): Remove 'false'
-					if false && len(data.subtitles) > 0 {
+					if len(data.subtitles) > 0 {
 						args := []string{
 							"-nostats",
 							"-hide_banner",
@@ -242,11 +241,10 @@ func syncLibrary(app core.App) error {
 							Value:   data.chapters,
 							Changed: true,
 						},
-						// TODO(patrik): Add back
-						// Subtitles: types.Change[[]database.MediaSubtitle]{
-						// 	Value:   data.subtitles,
-						// 	Changed: true,
-						// },
+						Subtitles: types.Change[[]database.MediaSubtitle]{
+							Value:   data.subtitles,
+							Changed: true,
+						},
 						Attachments: types.Change[[]database.MediaAttachment]{
 							Value:   data.attachments,
 							Changed: true,
@@ -341,7 +339,6 @@ func syncLibrary(app core.App) error {
 				if err != nil {
 					return err
 				}
-
 
 				season, err := app.DB().GetSeason(ctx, serie.Id, int(s))
 				if err != nil {

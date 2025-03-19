@@ -51,4 +51,24 @@ export class ApiClient extends BaseApiClient {
   getMediaById(id: string, options?: ExtraOptions) {
     return this.request(`/api/v1/media/${id}`, "GET", api.FullMedia, z.any(), undefined, options)
   }
+  
+  getLibraryStatus(options?: ExtraOptions) {
+    return this.request("/api/v1/library", "GET", api.GetLibraryStatus, z.any(), undefined, options)
+  }
+  
+  syncLibrary(options?: ExtraOptions) {
+    return this.request("/api/v1/library", "POST", z.undefined(), z.any(), undefined, options)
+  }
+  
+  getSeries(options?: ExtraOptions) {
+    return this.request("/api/v1/series", "GET", api.GetSeries, z.any(), undefined, options)
+  }
+  
+  getSerieById(id: string, options?: ExtraOptions) {
+    return this.request(`/api/v1/series/${id}`, "GET", api.GetSerieById, z.any(), undefined, options)
+  }
+  
+  getSeasonById(id: string, options?: ExtraOptions) {
+    return this.request(`/api/v1/seasons/${id}`, "GET", api.GetSeasonById, z.any(), undefined, options)
+  }
 }

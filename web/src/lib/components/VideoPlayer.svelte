@@ -4,25 +4,21 @@
   import { cn, formatTime, shouldDisplayHour } from "$lib/utils";
   import { Button, buttonVariants, DropdownMenu } from "@nanoteck137/nano-ui";
   import Hls from "hls.js";
-  import {
-    EllipsisVertical,
-    Fullscreen,
-    Merge,
-    Pause,
-    Play,
-  } from "lucide-svelte";
+  import { EllipsisVertical, Fullscreen, Pause, Play } from "lucide-svelte";
   import { onDestroy, onMount } from "svelte";
   import debounce from "just-debounce-it";
   import screenfull from "screenfull";
   import { fade } from "svelte/transition";
 
-  const { data } = $props();
+  type Props = {
+    videoUrl: string;
+    error?: string;
+  };
+
+  const { videoUrl = $bindable(), error }: Props = $props();
 
   type VideoState = "playing" | "paused";
   let videoState = $state<VideoState>("paused");
-
-  let audioIndex = $state(0);
-  let subtitleIndex = $state(-1);
 
   let loading = $state(false);
 
@@ -38,10 +34,14 @@
     videoState == "paused" || !isIdle || insideControls,
   );
 
-  let video: HTMLMediaElement;
+  let videoPlayerContainer: HTMLDivElement;
+
+  let video = $state<HTMLMediaElement>();
   let hls = $state<Hls>();
 
   onMount(() => {
+    if (!video) return;
+
     volume = video.volume;
 
     if (Hls.isSupported()) {
@@ -68,10 +68,6 @@
         // hls.subtitleDisplay = true;
         // hls.subtitleTrack = 0;
       });
-
-      hls.loadSource(
-        `http://10.28.28.6:3000/${data.media.id}/index.m3u8?audio=${audioIndex}&subtitle=${subtitleIndex}`,
-      );
     }
 
     return () => {
@@ -100,6 +96,10 @@
   onDestroy(() => {
     clearTimeout(timeout);
   });
+
+  $effect(() => {
+    hls?.loadSource(videoUrl);
+  });
 </script>
 
 <svelte:window
@@ -109,7 +109,7 @@
   }}
 />
 
-<div class="absolute bottom-0 left-0 right-0 top-0 overflow-clip">
+<div bind:this={videoPlayerContainer} class="relative w-full">
   <!-- svelte-ignore a11y_media_has_caption -->
   <video
     bind:this={video}
@@ -123,11 +123,15 @@
       loading = false;
     }}
     onloadedmetadata={() => {
+      if (!video) return;
+
       console.log("onloadedmetadata");
       duration = video.duration;
       onActivity();
     }}
     ontimeupdate={() => {
+      if (!video) return;
+
       time = video.currentTime;
     }}
     onplay={() => {
@@ -157,6 +161,8 @@
       loading = false;
     }}
     onprogress={() => {
+      if (!video) return;
+
       const duration = video.duration;
       if (duration > 0) {
         for (let i = 0; i < video.buffered.length; i++) {
@@ -182,6 +188,8 @@
       }
     }}
     onvolumechange={() => {
+      if (!video) return;
+
       volume = video.volume;
     }}
   >
@@ -192,6 +200,8 @@
   <div
     class={`absolute inset-0 z-40 opacity-0`}
     onclick={() => {
+      if (!video) return;
+
       onActivity();
 
       if (video.paused) {
@@ -202,11 +212,19 @@
     }}
   ></div>
 
+  {#if error}
+    <div class="absolute inset-0 bg-black/80"></div>
+  {/if}
+
   <div
     class="absolute left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2"
   >
-    {#if loading}
+    {#if loading && !error}
       <Spinner />
+    {/if}
+
+    {#if error}
+      <p>{error}</p>
     {/if}
   </div>
 
@@ -227,6 +245,8 @@
         value={time / duration}
         buffered={buffered / duration}
         onSeek={(v) => {
+          if (!video) return;
+
           const t = duration * v;
           video.currentTime = t;
           time = t;
@@ -240,7 +260,7 @@
             size="icon"
             variant="ghost"
             onclick={() => {
-              video.pause();
+              video?.pause();
             }}
           >
             <Pause />
@@ -251,7 +271,7 @@
             size="icon"
             variant="ghost"
             onclick={() => {
-              video.play();
+              video?.play();
             }}
           >
             <Play />
@@ -269,7 +289,7 @@
           size="icon"
           variant="ghost"
           onclick={() => {
-            screenfull.toggle();
+            screenfull.toggle(videoPlayerContainer);
           }}
         >
           <Fullscreen />
@@ -287,7 +307,7 @@
 
           <DropdownMenu.Content align="end">
             <DropdownMenu.Group>
-              {#each data.media.audioTracks as track}
+              <!-- {#each data.media.audioTracks as track}
                 <DropdownMenu.Item
                   onSelect={() => {
                     audioIndex = track.index;
@@ -299,7 +319,7 @@
                 >
                   {track.language}
                 </DropdownMenu.Item>
-              {/each}
+              {/each} -->
             </DropdownMenu.Group>
           </DropdownMenu.Content>
         </DropdownMenu.Root>
@@ -316,7 +336,7 @@
 
           <DropdownMenu.Content align="end">
             <DropdownMenu.Group>
-              <DropdownMenu.Item
+              <!-- <DropdownMenu.Item
                 onSelect={() => {
                   subtitleIndex = -1;
                   hls?.loadSource(
@@ -340,7 +360,7 @@
                   {subtitle.title} -
                   {subtitle.language}
                 </DropdownMenu.Item>
-              {/each}
+              {/each} -->
             </DropdownMenu.Group>
           </DropdownMenu.Content>
         </DropdownMenu.Root>
@@ -350,6 +370,8 @@
             value={volume}
             disableProgress
             onSeek={(v) => {
+              if (!video) return;
+
               // const t = duration * v;
               // video.currentTime = t;
               // time = t;

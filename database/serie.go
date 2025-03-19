@@ -35,7 +35,7 @@ func SerieQuery() *goqu.SelectDataset {
 	return query
 }
 
-func (db *Database) GetAllSeries(ctx context.Context, filterStr, sortStr string) ([]Serie, error) {
+func (db *Database) GetAllSeries(ctx context.Context) ([]Serie, error) {
 	query := SerieQuery()
 
 	var items []Serie

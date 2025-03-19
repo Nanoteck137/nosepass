@@ -11,6 +11,12 @@ import (
 	"github.com/nanoteck137/nosepass/types"
 )
 
+type EpisodeVariant struct {
+	Id       string `json:"id"`
+	Name     string `json:"name"`
+	Language string `json:"language"`
+}
+
 type Episode struct {
 	RowId int `db:"rowid"`
 
@@ -23,9 +29,39 @@ type Episode struct {
 
 	Created int64 `db:"created"`
 	Updated int64 `db:"updated"`
+
+	Variants JsonColumn[[]EpisodeVariant] `db:"variants"`
 }
 
 func EpisodeQuery() *goqu.SelectDataset {
+	variants := dialect.From("media_episodes").
+		Select(
+			goqu.I("media_episodes.episode_id").As("episode_id"),
+
+			goqu.Func(
+				"json_group_array",
+				goqu.Func(
+					"json_object",
+
+					"id",
+					goqu.I("media_variants.id"),
+					"name",
+					goqu.I("media_variants.name"),
+					"language",
+					goqu.I("media_variants.language"),
+				),
+			).As("variants"),
+		).
+		Join(
+			goqu.T("media"),
+			goqu.On(goqu.I("media_episodes.media_id").Eq(goqu.I("media.id"))),
+		).
+		Join(
+			goqu.T("media_variants"),
+			goqu.On(goqu.I("media.id").Eq(goqu.I("media_variants.media_id"))),
+		).
+		GroupBy(goqu.I("media_episodes.episode_id"))
+
 	query := dialect.From("episodes").
 		Select(
 			"episodes.rowid",
@@ -39,8 +75,14 @@ func EpisodeQuery() *goqu.SelectDataset {
 
 			"episodes.updated",
 			"episodes.created",
+
+			goqu.I("variants.variants").As("variants"),
 		).
-		Prepared(true)
+		Prepared(true).
+		LeftJoin(
+			variants.As("variants"),
+			goqu.On(goqu.I("episodes.id").Eq(goqu.I("variants.episode_id"))),
+		)
 
 	return query
 }

@@ -103,3 +103,53 @@ export const FullMedia = z.object({
 });
 export type FullMedia = z.infer<typeof FullMedia>;
 
+export const GetLibraryStatus = z.object({
+  syncing: z.boolean(),
+});
+export type GetLibraryStatus = z.infer<typeof GetLibraryStatus>;
+
+export const Serie = z.object({
+  id: z.string(),
+  name: z.string(),
+});
+export type Serie = z.infer<typeof Serie>;
+
+export const GetSeries = z.object({
+  series: z.array(Serie),
+});
+export type GetSeries = z.infer<typeof GetSeries>;
+
+export const SerieSeason = z.object({
+  id: z.string(),
+  name: z.string(),
+});
+export type SerieSeason = z.infer<typeof SerieSeason>;
+
+export const GetSerieById = z.object({
+  id: z.string(),
+  name: z.string(),
+  seasons: z.array(SerieSeason),
+});
+export type GetSerieById = z.infer<typeof GetSerieById>;
+
+export const SeasonEpisodeVariant = z.object({
+  id: z.string(),
+  name: z.string(),
+  language: z.string(),
+});
+export type SeasonEpisodeVariant = z.infer<typeof SeasonEpisodeVariant>;
+
+export const SeasonEpisode = z.object({
+  id: z.string(),
+  name: z.string(),
+  variants: z.array(SeasonEpisodeVariant),
+});
+export type SeasonEpisode = z.infer<typeof SeasonEpisode>;
+
+export const GetSeasonById = z.object({
+  id: z.string(),
+  name: z.string(),
+  episodes: z.array(SeasonEpisode),
+});
+export type GetSeasonById = z.infer<typeof GetSeasonById>;
+

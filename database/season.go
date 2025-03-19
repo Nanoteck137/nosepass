@@ -74,6 +74,19 @@ func (db *Database) GetSeasonById(ctx context.Context, id string) (Season, error
 	return item, nil
 }
 
+func (db *Database) GetSeasonBySerie(ctx context.Context, serieId string) ([]Season, error) {
+	query := SeasonQuery().
+		Where(goqu.I("seasons.serie_id").Eq(serieId))
+
+	var items []Season
+	err := db.Select(&items, query)
+	if err != nil {
+		return nil, err
+	}
+
+	return items, nil
+}
+
 func (db *Database) GetSeason(ctx context.Context, serieId string, seasonNumber int) (Season, error) {
 	query := SeasonQuery().
 		Where(

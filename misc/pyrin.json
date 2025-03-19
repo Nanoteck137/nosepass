@@ -283,6 +283,144 @@
           "omit": false
         }
       ]
+    },
+    {
+      "name": "GetLibraryStatus",
+      "extend": "",
+      "fields": [
+        {
+          "name": "syncing",
+          "type": "bool",
+          "omit": false
+        }
+      ]
+    },
+    {
+      "name": "Serie",
+      "extend": "",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "omit": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "omit": false
+        }
+      ]
+    },
+    {
+      "name": "GetSeries",
+      "extend": "",
+      "fields": [
+        {
+          "name": "series",
+          "type": "[]Serie",
+          "omit": false
+        }
+      ]
+    },
+    {
+      "name": "SerieSeason",
+      "extend": "",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "omit": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "omit": false
+        }
+      ]
+    },
+    {
+      "name": "GetSerieById",
+      "extend": "",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "omit": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "omit": false
+        },
+        {
+          "name": "seasons",
+          "type": "[]SerieSeason",
+          "omit": false
+        }
+      ]
+    },
+    {
+      "name": "SeasonEpisodeVariant",
+      "extend": "",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "omit": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "omit": false
+        },
+        {
+          "name": "language",
+          "type": "string",
+          "omit": false
+        }
+      ]
+    },
+    {
+      "name": "SeasonEpisode",
+      "extend": "",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "omit": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "omit": false
+        },
+        {
+          "name": "variants",
+          "type": "[]SeasonEpisodeVariant",
+          "omit": false
+        }
+      ]
+    },
+    {
+      "name": "GetSeasonById",
+      "extend": "",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "omit": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "omit": false
+        },
+        {
+          "name": "episodes",
+          "type": "[]SeasonEpisode",
+          "omit": false
+        }
+      ]
     }
   ],
   "apiEndpoints": [
@@ -362,6 +500,41 @@
       "path": "/api/v1/media/:id",
       "responseType": "FullMedia",
       "bodyType": ""
+    },
+    {
+      "name": "GetLibraryStatus",
+      "method": "GET",
+      "path": "/api/v1/library",
+      "responseType": "GetLibraryStatus",
+      "bodyType": ""
+    },
+    {
+      "name": "SyncLibrary",
+      "method": "POST",
+      "path": "/api/v1/library",
+      "responseType": "",
+      "bodyType": ""
+    },
+    {
+      "name": "GetSeries",
+      "method": "GET",
+      "path": "/api/v1/series",
+      "responseType": "GetSeries",
+      "bodyType": ""
+    },
+    {
+      "name": "GetSerieById",
+      "method": "GET",
+      "path": "/api/v1/series/:id",
+      "responseType": "GetSerieById",
+      "bodyType": ""
+    },
+    {
+      "name": "GetSeasonById",
+      "method": "GET",
+      "path": "/api/v1/seasons/:id",
+      "responseType": "GetSeasonById",
+      "bodyType": ""
     }
   ],
   "formApiEndpoints": null,
@@ -369,12 +542,12 @@
     {
       "name": "GetPlaylist",
       "method": "GET",
-      "path": "/:id/index.m3u8"
+      "path": "/api/media/:id/index.m3u8"
     },
     {
       "name": "GetSegment",
       "method": "GET",
-      "path": "/:id/:segment"
+      "path": "/api/media/:id/:segment"
     }
   ]
 }

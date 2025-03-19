@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"strconv"
 
 	"github.com/nanoteck137/nosepass"
 	"github.com/nanoteck137/nosepass/core"
@@ -23,6 +22,8 @@ func RegisterHandlers(app core.App, router pyrin.Router) {
 	InstallUserHandlers(app, g)
 	InstallMediaHandlers(app, g)
 	InstallLibraryHandlers(app, g)
+	InstallSerieHandlers(app, g)
+	InstallSeasonHandlers(app, g)
 
 	g = router.Group("/api/media")
 	g.Register(
@@ -33,19 +34,15 @@ func RegisterHandlers(app core.App, router pyrin.Router) {
 			HandlerFunc: func(c pyrin.Context) error {
 				id := c.Param("id")
 
-				url := c.Request().URL
-				audio, _ := strconv.ParseInt(url.Query().Get("audio"), 10, 0)
-
-				var subtitle int64 = -1
-
-				s := url.Query().Get("subtitle")
-				if s != "" {
-					subtitle, _ = strconv.ParseInt(s, 10, 0)
-				}
-
 				ctx := context.TODO()
 
-				media, err := app.DB().GetMediaById(ctx, id)
+				mediaVariant, err := app.DB().GetMediaVariantById(ctx, id)
+				if err != nil {
+					// TODO(patrik): Handle error
+					return err
+				}
+
+				media, err := app.DB().GetMediaById(ctx, mediaVariant.MediaId)
 				if err != nil {
 					// TODO(patrik): Handle error
 					return err
@@ -76,10 +73,7 @@ func RegisterHandlers(app core.App, router pyrin.Router) {
 						fmt.Fprintf(w, "#EXTINF: %f,\n", leftover)
 					}
 
-					// fmt.Fprintf(w, getUrl(segmentIndex)+"\n")
-					// fmt.Fprintf(w, "segment%d.ts\n", segmentIndex)
-
-					u := ConvertURL(c, fmt.Sprintf("/%v/segment%d.ts?audio=%d&subtitle=%d", id, segmentIndex, audio, subtitle))
+					u := ConvertURL(c, fmt.Sprintf("/api/media/%v/segment%d.ts", id, segmentIndex))
 					fmt.Fprint(w, u+"\n")
 
 					leftover = leftover - hlsSegmentLength
@@ -98,13 +92,15 @@ func RegisterHandlers(app core.App, router pyrin.Router) {
 			HandlerFunc: func(c pyrin.Context) error {
 				id := c.Param("id")
 
-				url := c.Request().URL
-				audio, _ := strconv.ParseInt(url.Query().Get("audio"), 10, 0)
-				subtitle, _ := strconv.ParseInt(url.Query().Get("subtitle"), 10, 0)
-
 				ctx := context.TODO()
 
-				media, err := app.DB().GetMediaById(ctx, id)
+				mediaVariant, err := app.DB().GetMediaVariantById(ctx, id)
+				if err != nil {
+					// TODO(patrik): Handle error
+					return err
+				}
+
+				media, err := app.DB().GetMediaById(ctx, mediaVariant.MediaId)
 				if err != nil {
 					// TODO(patrik): Handle error
 					return err
@@ -125,8 +121,9 @@ func RegisterHandlers(app core.App, router pyrin.Router) {
 				const videoFormat = "format=yuv420p"
 
 				vfilter := videoFormat
-				if subtitle != -1 {
-					subtitle := media.Subtitles.GetOrEmpty()[subtitle]
+				if mediaVariant.Subtitle.Valid {
+					// TODO(patrik): Bounds check
+					subtitle := media.Subtitles.GetOrEmpty()[mediaVariant.Subtitle.Int64]
 					sub := path.Join(mediaDir.Subtitles(), subtitle.Filename)
 
 					vfilter = fmt.Sprintf("%s,subtitles=%s", videoFormat, sub)
@@ -150,7 +147,7 @@ func RegisterHandlers(app core.App, router pyrin.Router) {
 					"-copyts",
 					"-muxdelay", "0",
 
-					"-map", "0:V:0",
+					"-map", fmt.Sprintf("0:V:%d", mediaVariant.VideoTrack),
 
 					"-t", fmt.Sprintf("%v.00", hlsSegmentLength),
 
@@ -166,7 +163,7 @@ func RegisterHandlers(app core.App, router pyrin.Router) {
 					"-preset", "veryfast",
 					// "-preset", "ultrafast",
 
-					"-map", fmt.Sprintf("0:a:%d", audio),
+					"-map", fmt.Sprintf("0:a:%d", mediaVariant.AudioTrack),
 
 					"-c:a", "aac",
 					"-b:a", "128k",
