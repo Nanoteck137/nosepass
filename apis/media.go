@@ -3,8 +3,9 @@ package apis
 import (
 	"context"
 	"net/http"
-	"strings"
+	"sort"
 
+	"github.com/maruel/natural"
 	"github.com/nanoteck137/nosepass/core"
 	"github.com/nanoteck137/pyrin"
 )
@@ -14,23 +15,17 @@ type Media struct {
 	Path string `json:"path"`
 }
 
-type MediaAudio struct {
-	Index    int    `json:"index"`
+type MediaVariant struct {
+	Id       string `json:"id"`
+	Name     string `json:"name"`
 	Language string `json:"language"`
-}
-
-type MediaSubtitle struct {
-	Index    int    `json:"index"`
-	Language string `json:"language"`
-	Title    string `json:"title"`
 }
 
 type FullMedia struct {
 	Id   string `json:"id"`
 	Path string `json:"path"`
 
-	AudioTracks []MediaAudio    `json:"audioTracks"`
-	Subtitles   []MediaSubtitle `json:"subtitles"`
+	Variants []MediaVariant `json:"variants"`
 }
 
 type GetMedia struct {
@@ -64,6 +59,10 @@ func InstallMediaHandlers(app core.App, group pyrin.Group) {
 					}
 				}
 
+				sort.SliceStable(res.Media, func(i, j int) bool {
+					return natural.Less(res.Media[i].Path, res.Media[j].Path)
+				})
+
 				return res, nil
 			},
 		},
@@ -84,43 +83,19 @@ func InstallMediaHandlers(app core.App, group pyrin.Group) {
 					return nil, err
 				}
 
-				audioTracks := media.AudioTracks.GetOrEmpty()
-				subtitles := media.Subtitles.GetOrEmpty()
+				variants := media.Variants.GetOrEmpty()
 
 				res := FullMedia{
 					Id:          media.Id,
 					Path:        media.Path,
-					AudioTracks: make([]MediaAudio, len(audioTracks)),
-					Subtitles:   make([]MediaSubtitle, len(subtitles)),
+					Variants: make([]MediaVariant, len(variants)),
 				}
 
-				for i, track := range audioTracks {
-					res.AudioTracks[i] = MediaAudio{
-						Index:    track.AudioIndex,
-						Language: track.Language,
-					}
-				}
-
-				for i, subtitle := range subtitles {
-					title := strings.TrimSpace(subtitle.Title)
-					if title == "" {
-						title = "Unknown"
-						switch subtitle.Language {
-						case "eng":
-							title = "English"
-						}
-					}
-
-					language := "unknown"
-					switch subtitle.Language {
-					case "eng":
-						language = "en"
-					}
-
-					res.Subtitles[i] = MediaSubtitle{
-						Index:    subtitle.SubtitleIndex,
-						Language: language,
-						Title:    title,
+				for i, variant := range variants {
+					res.Variants[i] = MediaVariant{
+						Id:       variant.Id,
+						Name:     variant.Name,
+						Language: variant.Language,
 					}
 				}
 

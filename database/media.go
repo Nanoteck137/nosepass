@@ -57,9 +57,12 @@ type MediaVariantInfo struct {
 type Media struct {
 	RowId int `db:"rowid"`
 
-	Id               string `db:"id"`
-	Path             string `db:"path"`
-	FileModifiedTime int64  `db:"file_modified_time"`
+	Id   string `db:"id"`
+	Path string `db:"path"`
+
+	CollectionId string `db:"collection_id"`
+
+	FileModifiedTime int64 `db:"file_modified_time"`
 
 	Chapters    JsonColumn[[]MediaChapter]    `db:"chapters"`
 	Subtitles   JsonColumn[[]MediaSubtitle]   `db:"subtitles"`
@@ -83,8 +86,10 @@ func MediaQuery() *goqu.SelectDataset {
 				goqu.Func(
 					"json_object",
 
-					"name",
+					"id",
 					goqu.I("media_variants.id"),
+					"name",
+					goqu.I("media_variants.name"),
 					"language",
 					goqu.I("media_variants.language"),
 					"video_track",
@@ -104,6 +109,9 @@ func MediaQuery() *goqu.SelectDataset {
 
 			"media.id",
 			"media.path",
+
+			"media.collection_id",
+
 			"media.file_modified_time",
 
 			"media.chapters",
@@ -138,6 +146,19 @@ func (db *Database) GetAllMedia(ctx context.Context) ([]Media, error) {
 	return items, nil
 }
 
+func (db *Database) GetMediaByCollectionId(ctx context.Context, collectionId string) ([]Media, error) {
+	query := MediaQuery().
+		Where(goqu.I("media.collection_id").Eq(collectionId))
+
+	var items []Media
+	err := db.Select(&items, query)
+	if err != nil {
+		return nil, err
+	}
+
+	return items, nil
+}
+
 func (db *Database) GetMediaById(ctx context.Context, id string) (Media, error) {
 	query := MediaQuery().
 		Where(goqu.I("media.id").Eq(id))
@@ -153,8 +174,11 @@ func (db *Database) GetMediaByPath(ctx context.Context, path string) (Media, err
 }
 
 type CreateMediaParams struct {
-	Id               string
-	Path             string
+	Id   string
+	Path string
+
+	CollectionId string
+
 	FileModifiedTime int64
 
 	Chapters    []MediaChapter
@@ -183,8 +207,11 @@ func (db *Database) CreateMedia(ctx context.Context, params CreateMediaParams) (
 	}
 
 	query := dialect.Insert("media").Rows(goqu.Record{
-		"id":                 id,
-		"path":               params.Path,
+		"id":   id,
+		"path": params.Path,
+
+		"collection_id": params.CollectionId,
+
 		"file_modified_time": params.FileModifiedTime,
 
 		"chapters":     NewJsonColumn(params.Chapters),
@@ -201,6 +228,9 @@ func (db *Database) CreateMedia(ctx context.Context, params CreateMediaParams) (
 
 			"media.id",
 			"media.path",
+
+			"media.collection_id",
+
 			"media.file_modified_time",
 
 			"media.chapters",

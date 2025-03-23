@@ -1,9 +1,15 @@
 package library
 
 import (
+	"encoding/json"
+	"io/fs"
 	"os"
 	"path"
+	"path/filepath"
+	"strings"
 	"time"
+
+	"github.com/kr/pretty"
 )
 
 type Media struct {
@@ -16,19 +22,12 @@ type Collection struct {
 	Name string
 	Path string
 
-	MediaItems []Media
-}
-
-type Serie struct {
-	Name string
-	Path string
-
-	Collections []Collection
+	Media []Media
 }
 
 type Library struct {
-	Path   string
-	Series []Serie
+	Path        string
+	Collections []Collection
 }
 
 func readMedia(p string) ([]Media, error) {
@@ -66,54 +65,159 @@ func readMedia(p string) ([]Media, error) {
 	return items, nil
 }
 
+type CollectionMetadataMediaVariant struct {
+	VideoTrackIndex int `json:"videoTrackIndex"`
+	AudioTrackIndex int `json:"audioTrackIndex"`
+	SubtitleIndex   int `json:"subtitleIndex"`
+}
+
+type CollectionMetadataMedia struct {
+	Name     string `json:"name"`
+	Filename string `json:"filename"`
+
+	Sub *CollectionMetadataMediaVariant `json:"sub"`
+	Dub *CollectionMetadataMediaVariant `json:"dub"`
+}
+
+type CollectionMetadata struct {
+	Name string `json:"name"`
+
+	Items []CollectionMetadataMedia `json:"items"`
+}
+
 func ReadFromDisk(p string) (*Library, error) {
-	entries, err := os.ReadDir(p)
-	if err != nil {
-		return nil, err
-	}
+	var collectionPaths []string
 
-	var series []Serie
-
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			continue
+	filepath.WalkDir(p, func(p string, d fs.DirEntry, err error) error {
+		if d.IsDir() {
+			return nil
 		}
 
-		p := path.Join(p, entry.Name())
+		name := d.Name()
+		if strings.HasPrefix(name, ".") {
+			return nil
+		}
 
-		entries, err := os.ReadDir(p)
+		if name == "collection.json" {
+			b := path.Dir(p)
+			collectionPaths = append(collectionPaths, b)
+		}
+
+		return nil
+	})
+
+	pretty.Println(collectionPaths)
+
+	// entries, err := os.ReadDir(p)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	var collections []Collection
+
+	for _, p := range collectionPaths {
+		d, err := os.ReadFile(path.Join(p, "collection.json"))
 		if err != nil {
 			return nil, err
 		}
 
-		var collections []Collection
-
-		for _, entry := range entries {
-			p := path.Join(p, entry.Name())
-
-			if entry.IsDir() {
-				mediaItems, err := readMedia(p)
-				if err != nil {
-					return nil, err
-				}
-
-				collections = append(collections, Collection{
-					Name:       entry.Name(),
-					Path:       p,
-					MediaItems: mediaItems,
-				})
-			}
+		// TODO(patrik): Validate this
+		var metadata CollectionMetadata
+		err = json.Unmarshal(d, &metadata)
+		if err != nil {
+			return nil, err
 		}
 
-		series = append(series, Serie{
-			Name:        entry.Name(),
-			Path:        p,
-			Collections: collections,
+		media, err := readMedia(p)
+		if err != nil {
+			return nil, err
+		}
+
+		collections = append(collections, Collection{
+			Name:  metadata.Name,
+			Path:  p,
+			Media: media,
 		})
 	}
 
+	// for _, entry := range entries {
+	// 	if !entry.IsDir() {
+	// 		continue
+	// 	}
+	//
+	// 	p := path.Join(p, entry.Name())
+	//
+	// 	// entries, err := os.ReadDir(p)
+	// 	// if err != nil {
+	// 	// 	return nil, err
+	// 	// }
+	//
+	// 	mappedCollections := make(map[string]MediaCollection)
+	//
+	// 	err = filepath.WalkDir(p, func(p string, d fs.DirEntry, err error) error {
+	// 		// pretty.Println(d)
+	//
+	// 		if d.IsDir() {
+	// 			return nil
+	// 		}
+	//
+	// 		name := d.Name()
+	// 		if strings.HasPrefix(name, ".") {
+	// 			return nil
+	// 		}
+	//
+	// 		ext := path.Ext(p)
+	// 		switch ext {
+	// 		case ".mp4", ".mkv":
+	// 			name := path.Base(p)
+	//
+	// 			info, err := entry.Info()
+	// 			if err != nil {
+	// 				return err
+	// 			}
+	//
+	// 			item := Media{
+	// 				Name:    name,
+	// 				Path:    p,
+	// 				ModTime: info.ModTime(),
+	// 			}
+	//
+	// 			dir := path.Dir(p)
+	// 			col, exists := mappedCollections[dir]
+	// 			if !exists {
+	// 				b := path.Base(dir)
+	// 				mappedCollections[dir] = MediaCollection{
+	// 					Name:       b,
+	// 					Path:       dir,
+	// 					MediaItems: []Media{item},
+	// 				}
+	// 			} else {
+	// 				col.MediaItems = append(col.MediaItems, item)
+	// 				mappedCollections[dir] = col
+	// 			}
+	// 		}
+	//
+	// 		return nil
+	// 	})
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	//
+	// 	collections := make([]MediaCollection, 0, len(mappedCollections))
+	//
+	// 	for _, col := range mappedCollections {
+	// 		collections = append(collections, col)
+	// 	}
+	//
+	// 	series = append(series, Collection{
+	// 		Name:             entry.Name(),
+	// 		Path:             p,
+	// 		MediaCollections: collections,
+	// 	})
+	// }
+
 	return &Library{
-		Path:   p,
-		Series: series,
+		Path:        p,
+		Collections: collections,
 	}, nil
 }

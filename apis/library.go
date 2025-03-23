@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"regexp"
 	"strconv"
 	"sync/atomic"
 
@@ -119,12 +118,13 @@ func getFileData(ctx context.Context, p string) (filedata, error) {
 	}, nil
 }
 
-func getOrCreateMedia(db *database.Database, ctx context.Context, p string) (database.Media, error) {
+func getOrCreateMedia(db *database.Database, ctx context.Context, collectionId, p string) (database.Media, error) {
 	media, err := db.GetMediaByPath(ctx, p)
 	if err != nil {
 		if errors.Is(err, database.ErrItemNotFound) {
 			res, err := db.CreateMedia(ctx, database.CreateMediaParams{
-				Path: p,
+				Path:         p,
+				CollectionId: collectionId,
 			})
 			if err != nil {
 				return database.Media{}, err
@@ -144,6 +144,27 @@ func getOrCreateMedia(db *database.Database, ctx context.Context, p string) (dat
 	return media, err
 }
 
+func getOrCreateCollection(ctx context.Context, db *database.Database, path, name string) (database.Collection, error) {
+	col, err := db.GetCollectionByPath(ctx, path)
+	if err != nil {
+		if errors.Is(err, database.ErrItemNotFound) {
+			col, err := db.CreateCollection(ctx, database.CreateCollectionParams{
+				Path: path,
+				Name: name,
+			})
+			if err != nil {
+				return database.Collection{}, err
+			}
+
+			return col, nil
+		}
+
+		return database.Collection{}, err
+	}
+
+	return col, nil
+}
+
 func syncLibrary(app core.App) error {
 	syncing.Store(true)
 	defer syncing.Store(false)
@@ -155,218 +176,256 @@ func syncLibrary(app core.App) error {
 
 	ctx := context.TODO()
 
-	for _, serie := range lib.Series {
-		for _, collection := range serie.Collections {
-			for _, mediaItem := range collection.MediaItems {
-				media, err := getOrCreateMedia(app.DB(), ctx, mediaItem.Path)
-				if err != nil {
+	for _, collection := range lib.Collections {
+		dbCollection, err := getOrCreateCollection(ctx, app.DB(), collection.Path, collection.Name)
+		if err != nil {
+			return err
+		}
+
+		err = app.DB().UpdateCollection(ctx, dbCollection.Id, database.CollectionChanges{
+			Name: types.Change[string]{
+				Value:   collection.Name,
+				Changed: collection.Name != dbCollection.Name,
+			},
+		})
+		if err != nil {
+			return err
+		}
+
+		for _, mediaItem := range collection.Media {
+			media, err := getOrCreateMedia(app.DB(), ctx, dbCollection.Id, mediaItem.Path)
+			if err != nil {
+				return err
+			}
+
+			// err = app.DB().DeleteAllMediaEpisodes(ctx, media.Id)
+			// if err != nil {
+			// 	return err
+			// }
+
+			if media.FileModifiedTime < mediaItem.ModTime.UnixMilli() {
+				mediaDir := app.WorkDir().MediaIdDir(media.Id)
+
+				err := os.RemoveAll(mediaDir.String())
+				if err != nil && !os.IsNotExist(err) {
 					return err
 				}
 
-				err = app.DB().DeleteAllMediaEpisodes(ctx, media.Id)
-				if err != nil {
-					return err
+				dirs := []string{
+					mediaDir.String(),
+					mediaDir.Subtitles(),
+					mediaDir.Attachments(),
 				}
 
-				if media.FileModifiedTime < mediaItem.ModTime.UnixMilli() {
-					mediaDir := app.WorkDir().MediaIdDir(media.Id)
-
-					err := os.RemoveAll(mediaDir.String())
-					if err != nil && !os.IsNotExist(err) {
+				for _, dir := range dirs {
+					err = os.Mkdir(dir, 0755)
+					if err != nil && !os.IsExist(err) {
 						return err
 					}
+				}
 
-					dirs := []string{
-						mediaDir.String(),
-						mediaDir.Subtitles(),
-						mediaDir.Attachments(),
+				data, err := getFileData(ctx, media.Path)
+				if err != nil {
+					return err
+				}
+
+				if len(data.subtitles) > 0 {
+					args := []string{
+						"-nostats",
+						"-hide_banner",
+						"-loglevel", "error",
+						"-i", media.Path,
 					}
 
-					for _, dir := range dirs {
-						err = os.Mkdir(dir, 0755)
-						if err != nil && !os.IsExist(err) {
-							return err
+					// ffmpeg -i Movie.mkv -map 0:s:0 subs.srt
+					for _, subtitle := range data.subtitles {
+						ext := ""
+						switch subtitle.Type {
+						case "ass":
+							ext = ".ass"
+						default:
+							log.Warn("Missing subtitle type", "type", subtitle.Type)
+							continue
 						}
+
+						args = append(args,
+							"-map", fmt.Sprintf("0:s:%d", subtitle.SubtitleIndex),
+							"-c", "copy",
+							path.Join(mediaDir.Subtitles(), strconv.Itoa(subtitle.SubtitleIndex)+ext),
+						)
 					}
 
-					data, err := getFileData(ctx, media.Path)
+					pretty.Println(args)
+
+					cmd := exec.Command("ffmpeg", args...)
+					cmd.Stderr = os.Stderr
+
+					err = cmd.Run()
 					if err != nil {
 						return err
 					}
+				}
 
-					if len(data.subtitles) > 0 {
-						args := []string{
-							"-nostats",
-							"-hide_banner",
-							"-loglevel", "error",
-							"-i", media.Path,
-						}
+				err = app.DB().UpdateMedia(ctx, media.Id, database.MediaChanges{
+					FileModifiedTime: types.Change[int64]{
+						Value:   mediaItem.ModTime.UnixMilli(),
+						Changed: true,
+					},
 
-						// ffmpeg -i Movie.mkv -map 0:s:0 subs.srt
-						for _, subtitle := range data.subtitles {
-							ext := ""
-							switch subtitle.Type {
-							case "ass":
-								ext = ".ass"
-							default:
-								log.Warn("Missing subtitle type", "type", subtitle.Type)
-								continue
+					Chapters: types.Change[[]database.MediaChapter]{
+						Value:   data.chapters,
+						Changed: true,
+					},
+					Subtitles: types.Change[[]database.MediaSubtitle]{
+						Value:   data.subtitles,
+						Changed: true,
+					},
+					Attachments: types.Change[[]database.MediaAttachment]{
+						Value:   data.attachments,
+						Changed: true,
+					},
+					VideoTracks: types.Change[[]database.MediaVideoTrack]{
+						Value:   data.videoTracks,
+						Changed: true,
+					},
+					AudioTracks: types.Change[[]database.MediaAudioTrack]{
+						Value:   data.audioTracks,
+						Changed: true,
+					},
+				})
+				if err != nil {
+					return err
+				}
+
+				variants := media.Variants.GetOrEmpty()
+				if len(variants) <= 0 {
+					for _, audio := range data.audioTracks {
+						switch audio.Language {
+						case "eng":
+							_, err := app.DB().CreateMediaVariant(ctx, database.CreateMediaVariantParams{
+								MediaId:    media.Id,
+								Name:       "English",
+								Language:   "en",
+								VideoTrack: 0,
+								AudioTrack: audio.AudioIndex,
+								// Subtitle:   sql.NullString{},
+							})
+							if err != nil {
+								return err
+							}
+						case "und":
+							subIndex := int64(-1)
+
+							// TODO(patrik): Better selection
+							for _, subtitle := range data.subtitles {
+								if subtitle.IsDefault {
+									subIndex = int64(subtitle.SubtitleIndex)
+									break
+								}
 							}
 
-							args = append(args,
-								"-map", fmt.Sprintf("0:s:%d", subtitle.SubtitleIndex),
-								"-c", "copy",
-								path.Join(mediaDir.Subtitles(), strconv.Itoa(subtitle.SubtitleIndex)+ext),
-							)
-						}
-
-						pretty.Println(args)
-
-						cmd := exec.Command("ffmpeg", args...)
-						cmd.Stderr = os.Stderr
-
-						err = cmd.Run()
-						if err != nil {
-							return err
-						}
-					}
-
-					err = app.DB().UpdateMedia(ctx, media.Id, database.MediaChanges{
-						FileModifiedTime: types.Change[int64]{
-							Value:   mediaItem.ModTime.UnixMilli(),
-							Changed: true,
-						},
-
-						Chapters: types.Change[[]database.MediaChapter]{
-							Value:   data.chapters,
-							Changed: true,
-						},
-						Subtitles: types.Change[[]database.MediaSubtitle]{
-							Value:   data.subtitles,
-							Changed: true,
-						},
-						Attachments: types.Change[[]database.MediaAttachment]{
-							Value:   data.attachments,
-							Changed: true,
-						},
-						VideoTracks: types.Change[[]database.MediaVideoTrack]{
-							Value:   data.videoTracks,
-							Changed: true,
-						},
-						AudioTracks: types.Change[[]database.MediaAudioTrack]{
-							Value:   data.audioTracks,
-							Changed: true,
-						},
-					})
-					if err != nil {
-						return err
-					}
-
-					variants := media.Variants.GetOrEmpty()
-					if len(variants) <= 0 {
-						for _, audio := range data.audioTracks {
-							switch audio.Language {
-							case "eng":
-								_, err := app.DB().CreateMediaVariant(ctx, database.CreateMediaVariantParams{
-									MediaId:    media.Id,
-									Name:       "English",
-									Language:   "en",
-									VideoTrack: 0,
-									AudioTrack: audio.AudioIndex,
-									// Subtitle:   sql.NullString{},
-								})
-								if err != nil {
-									return err
-								}
-							case "jpn":
-								subIndex := int64(-1)
-
-								// TODO(patrik): Better selection
-								for _, subtitle := range data.subtitles {
-									if subtitle.IsDefault {
-										subIndex = int64(subtitle.SubtitleIndex)
-										break
-									}
-								}
-
-								_, err := app.DB().CreateMediaVariant(ctx, database.CreateMediaVariantParams{
-									MediaId:    media.Id,
-									Name:       "Japanese",
-									Language:   "jp",
-									VideoTrack: 0,
-									AudioTrack: audio.AudioIndex,
-									Subtitle: sql.NullInt64{
-										Int64: subIndex,
-										Valid: subIndex != -1,
-									},
-								})
-								if err != nil {
-									return err
-								}
-							default:
-								log.Warn("Unsupported audio language", "path", media.Path, "language", audio.Language)
+							_, err := app.DB().CreateMediaVariant(ctx, database.CreateMediaVariantParams{
+								MediaId:    media.Id,
+								Name:       "Undefined",
+								Language:   "und",
+								VideoTrack: 0,
+								AudioTrack: audio.AudioIndex,
+								Subtitle: sql.NullInt64{
+									Int64: subIndex,
+									Valid: subIndex != -1,
+								},
+							})
+							if err != nil {
+								return err
 							}
+						case "jpn":
+							subIndex := int64(-1)
+
+							// TODO(patrik): Better selection
+							for _, subtitle := range data.subtitles {
+								if subtitle.IsDefault {
+									subIndex = int64(subtitle.SubtitleIndex)
+									break
+								}
+							}
+
+							_, err := app.DB().CreateMediaVariant(ctx, database.CreateMediaVariantParams{
+								MediaId:    media.Id,
+								Name:       "Japanese",
+								Language:   "jp",
+								VideoTrack: 0,
+								AudioTrack: audio.AudioIndex,
+								Subtitle: sql.NullInt64{
+									Int64: subIndex,
+									Valid: subIndex != -1,
+								},
+							})
+							if err != nil {
+								return err
+							}
+						default:
+							log.Warn("Unsupported audio language", "path", media.Path, "language", audio.Language)
 						}
-					}
-				}
-
-				serie, err := app.DB().GetSerieByName(ctx, serie.Name)
-				if err != nil {
-					if errors.Is(err, database.ErrItemNotFound) {
-						continue
-					} else {
-						return err
-					}
-				}
-
-				// n, err := strconv.ParseInt(strings.TrimLeft(collection.Name, "Season "), 10, 0)
-				// if err != nil {
-				// 	return err
-				// }
-				//
-				// fmt.Printf("n: %v\n", n)
-
-				var r = regexp.MustCompile(`.+S(\d+)E(\d+)`)
-
-				m := r.FindStringSubmatch(mediaItem.Name)
-
-				s, err := strconv.ParseInt(m[1], 10, 0)
-				if err != nil {
-					return err
-				}
-
-				e, err := strconv.ParseInt(m[2], 10, 0)
-				if err != nil {
-					return err
-				}
-
-				season, err := app.DB().GetSeason(ctx, serie.Id, int(s))
-				if err != nil {
-					if errors.Is(err, database.ErrItemNotFound) {
-						continue
-					} else {
-						return err
-					}
-				}
-
-				episodes, err := app.DB().GetEpisodes(ctx, season.Id)
-				if err != nil {
-					return err
-				}
-
-				for _, episode := range episodes {
-					if episode.SeasonNumber.Int64 == e {
-						err := app.DB().AddMediaToEpisode(ctx, media.Id, episode.Id)
-						if err != nil {
-							return err
-						}
-
-						fmt.Printf("%s -> %s/%s/%s\n", mediaItem.Path, serie.Name, season.Name, episode.Name)
-
-						break
 					}
 				}
 			}
+
+			// serie, err := app.DB().GetSerieByName(ctx, serie.Name)
+			// if err != nil {
+			// 	if errors.Is(err, database.ErrItemNotFound) {
+			// 		continue
+			// 	} else {
+			// 		return err
+			// 	}
+			// }
+
+			// n, err := strconv.ParseInt(strings.TrimLeft(collection.Name, "Season "), 10, 0)
+			// if err != nil {
+			// 	return err
+			// }
+			//
+			// fmt.Printf("n: %v\n", n)
+
+			// var r = regexp.MustCompile(`.+S(\d+)E(\d+)`)
+			//
+			// m := r.FindStringSubmatch(mediaItem.Name)
+			//
+			// s, err := strconv.ParseInt(m[1], 10, 0)
+			// if err != nil {
+			// 	return err
+			// }
+			//
+			// e, err := strconv.ParseInt(m[2], 10, 0)
+			// if err != nil {
+			// 	return err
+			// }
+			//
+			// season, err := app.DB().GetSeason(ctx, serie.Id, int(s))
+			// if err != nil {
+			// 	if errors.Is(err, database.ErrItemNotFound) {
+			// 		continue
+			// 	} else {
+			// 		return err
+			// 	}
+			// }
+			//
+			// episodes, err := app.DB().GetEpisodes(ctx, season.Id)
+			// if err != nil {
+			// 	return err
+			// }
+			//
+			// for _, episode := range episodes {
+			// 	if episode.SeasonNumber.Int64 == e {
+			// 		err := app.DB().AddMediaToEpisode(ctx, media.Id, episode.Id)
+			// 		if err != nil {
+			// 			return err
+			// 		}
+			//
+			// 		fmt.Printf("%s -> %s/%s/%s\n", mediaItem.Path, serie.Name, season.Name, episode.Name)
+			//
+			// 		break
+			// 	}
+			// }
 		}
 	}
 

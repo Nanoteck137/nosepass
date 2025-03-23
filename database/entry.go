@@ -9,36 +9,37 @@ import (
 	"github.com/nanoteck137/nosepass/types"
 )
 
-type Serie struct {
+type Entry struct {
 	RowId int `db:"rowid"`
 
 	Id   string `db:"id"`
+
 	Name string `db:"name"`
 
 	Created int64 `db:"created"`
 	Updated int64 `db:"updated"`
 }
 
-func SerieQuery() *goqu.SelectDataset {
-	query := dialect.From("series").
+func EntryQuery() *goqu.SelectDataset {
+	query := dialect.From("entries").
 		Select(
-			"series.rowid",
+			"entries.rowid",
 
-			"series.id",
-			"series.name",
+			"entries.id",
+			"entries.name",
 
-			"series.updated",
-			"series.created",
+			"entries.updated",
+			"entries.created",
 		).
 		Prepared(true)
 
 	return query
 }
 
-func (db *Database) GetAllSeries(ctx context.Context) ([]Serie, error) {
-	query := SerieQuery()
+func (db *Database) GetAllEntries(ctx context.Context) ([]Entry, error) {
+	query := EntryQuery()
 
-	var items []Serie
+	var items []Entry
 	err := db.Select(&items, query)
 	if err != nil {
 		return nil, err
@@ -47,21 +48,21 @@ func (db *Database) GetAllSeries(ctx context.Context) ([]Serie, error) {
 	return items, nil
 }
 
-func (db *Database) GetSerieById(ctx context.Context, id string) (Serie, error) {
-	query := SerieQuery().
-		Where(goqu.I("series.id").Eq(id))
+func (db *Database) GetEntryById(ctx context.Context, id string) (Entry, error) {
+	query := EntryQuery().
+		Where(goqu.I("entries.id").Eq(id))
 
-	return single[Serie](db, query)
+	return single[Entry](db, query)
 }
 
-func (db *Database) GetSerieByName(ctx context.Context, name string) (Serie, error) {
-	query := SerieQuery().
-		Where(goqu.I("series.name").Eq(name))
+func (db *Database) GetEntryByName(ctx context.Context, name string) (Entry, error) {
+	query := EntryQuery().
+		Where(goqu.I("entries.name").Eq(name))
 
-	return single[Serie](db, query)
+	return single[Entry](db, query)
 }
 
-type CreateSerieParams struct {
+type CreateEntryParams struct {
 	Id   string
 	Name string
 
@@ -69,7 +70,7 @@ type CreateSerieParams struct {
 	Updated int64
 }
 
-func (db *Database) CreateSerie(ctx context.Context, params CreateSerieParams) (Serie, error) {
+func (db *Database) CreateEntry(ctx context.Context, params CreateEntryParams) (Entry, error) {
 	t := time.Now().UnixMilli()
 	created := params.Created
 	updated := params.Updated
@@ -81,10 +82,10 @@ func (db *Database) CreateSerie(ctx context.Context, params CreateSerieParams) (
 
 	id := params.Id
 	if id == "" {
-		id = utils.CreateSerieId()
+		id = utils.CreateEntryId()
 	}
 
-	query := dialect.Insert("series").Rows(goqu.Record{
+	query := dialect.Insert("entries").Rows(goqu.Record{
 		"id":   id,
 		"name": params.Name,
 
@@ -92,32 +93,32 @@ func (db *Database) CreateSerie(ctx context.Context, params CreateSerieParams) (
 		"updated": updated,
 	}).
 		Returning(
-			"series.rowid",
+			"entries.rowid",
 
-			"series.id",
-			"series.name",
+			"entries.id",
+			"entries.name",
 
-			"series.updated",
-			"series.created",
+			"entries.updated",
+			"entries.created",
 		).
 		Prepared(true)
 
-	var item Serie
+	var item Entry
 	err := db.Get(&item, query)
 	if err != nil {
-		return Serie{}, err
+		return Entry{}, err
 	}
 
 	return item, nil
 }
 
-type SerieChanges struct {
+type EntryChanges struct {
 	Name types.Change[string]
 
 	Created types.Change[int64]
 }
 
-func (db *Database) UpdateSerie(ctx context.Context, id string, changes SerieChanges) error {
+func (db *Database) UpdateEntry(ctx context.Context, id string, changes EntryChanges) error {
 	record := goqu.Record{}
 
 	addToRecord(record, "name", changes.Name)
@@ -130,9 +131,9 @@ func (db *Database) UpdateSerie(ctx context.Context, id string, changes SerieCha
 
 	record["updated"] = time.Now().UnixMilli()
 
-	ds := dialect.Update("series").
+	ds := dialect.Update("entries").
 		Set(record).
-		Where(goqu.I("series.id").Eq(id)).
+		Where(goqu.I("entries.id").Eq(id)).
 		Prepared(true)
 
 	_, err := db.Exec(ctx, ds)
@@ -143,10 +144,10 @@ func (db *Database) UpdateSerie(ctx context.Context, id string, changes SerieCha
 	return nil
 }
 
-func (db *Database) DeleteSerie(ctx context.Context, id string) error {
-	query := dialect.Delete("series").
+func (db *Database) DeleteEntry(ctx context.Context, id string) error {
+	query := dialect.Delete("entries").
 		Prepared(true).
-		Where(goqu.I("series.id").Eq(id))
+		Where(goqu.I("entries.id").Eq(id))
 
 	_, err := db.Exec(ctx, query)
 	if err != nil {

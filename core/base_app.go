@@ -2,15 +2,14 @@ package core
 
 import (
 	"context"
-	"database/sql"
 	"errors"
-	"fmt"
 	"os"
 
 	"github.com/kr/pretty"
 	"github.com/nanoteck137/nosepass/config"
 	"github.com/nanoteck137/nosepass/core/log"
 	"github.com/nanoteck137/nosepass/database"
+	"github.com/nanoteck137/nosepass/library"
 	"github.com/nanoteck137/nosepass/types"
 )
 
@@ -61,6 +60,13 @@ func (app *BaseApp) Bootstrap() error {
 		}
 	}
 
+	lib, err := library.ReadFromDisk("/Volumes/media2/test")
+	if err != nil {
+		return err
+	}
+
+	pretty.Println(lib)
+
 	_, err = os.Stat(workDir.SetupFile())
 	if errors.Is(err, os.ErrNotExist) && app.config.Username != "" {
 		log.Info("Server not setup, creating the initial user")
@@ -81,49 +87,6 @@ func (app *BaseApp) Bootstrap() error {
 			return err
 		}
 		f.Close()
-
-		{
-			serie, err := app.db.CreateSerie(ctx, database.CreateSerieParams{
-				Name: "Solo Leveling",
-			})
-			if err != nil {
-				return err
-			}
-
-			pretty.Println(serie)
-
-			season, err := app.db.CreateSeason(ctx, database.CreateSeasonParams{
-				SerieId: serie.Id,
-				Name:    "Season 1",
-				Number:  1,
-				Type:    "season",
-			})
-			if err != nil {
-				return err
-			}
-
-			pretty.Println(season)
-
-			for i := 0; i < 12; i++ {
-				episode, err := app.db.CreateEpisode(ctx, database.CreateEpisodeParams{
-					SeasonId: season.Id,
-					Name:     fmt.Sprintf("Episode %d", i + 1),
-					SeasonNumber: sql.NullInt64{
-						Int64: int64(i + 1),
-						Valid: true,
-					},
-					SerieNumber: sql.NullInt64{
-						Int64: int64(i + 1),
-						Valid: true,
-					},
-				})
-				if err != nil {
-					return err
-				}
-
-				pretty.Println(episode)
-			}
-		}
 	}
 
 	return nil

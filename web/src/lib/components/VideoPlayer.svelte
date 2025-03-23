@@ -10,6 +10,8 @@
   import screenfull from "screenfull";
   import { fade } from "svelte/transition";
 
+  const MOVE_AMOUNT = 10;
+
   type Props = {
     videoUrl: string;
     error?: string;
@@ -109,6 +111,55 @@
   }}
 />
 
+<svelte:document
+  onkeydown={(e) => {
+    const source = e.target as HTMLElement;
+    const exclude = ["input", "textarea"];
+
+    if (exclude.indexOf(source.tagName.toLowerCase()) === -1) {
+      console.log(e.key);
+      if (e.key === "f") {
+        screenfull.toggle(videoPlayerContainer);
+        onActivity();
+      }
+
+      if (video) {
+        if (e.key == " ") {
+          if (video.paused) {
+            video.play();
+          } else {
+            video.pause();
+          }
+
+          onActivity();
+        }
+
+        if (e.key === "ArrowLeft") {
+          video.currentTime -= MOVE_AMOUNT;
+          time -= MOVE_AMOUNT;
+          onActivity();
+        }
+
+        if (e.key === "ArrowRight") {
+          video.currentTime += MOVE_AMOUNT;
+          time += MOVE_AMOUNT;
+          onActivity();
+        }
+
+        if (e.key === "ArrowUp") {
+          video.volume += 0.1;
+          onActivity();
+        }
+
+        if (e.key === "ArrowDown") {
+          video.volume -= 0.1;
+          onActivity();
+        }
+      }
+    }
+  }}
+/>
+
 <div bind:this={videoPlayerContainer} class="relative w-full">
   <!-- svelte-ignore a11y_media_has_caption -->
   <video
@@ -198,7 +249,10 @@
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
-    class={`absolute inset-0 z-40 opacity-0`}
+    class={`absolute inset-0 z-40 opacity-0 ${showControls ? "" : "cursor-none"}`}
+    ondblclick={() => {
+      screenfull.toggle(videoPlayerContainer);
+    }}
     onclick={() => {
       if (!video) return;
 

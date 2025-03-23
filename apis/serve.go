@@ -20,12 +20,17 @@ func RegisterHandlers(app core.App, router pyrin.Router) {
 	InstallSystemHandlers(app, g)
 	InstallAuthHandlers(app, g)
 	InstallUserHandlers(app, g)
+
+	InstallEntryHandlers(app, g)
 	InstallMediaHandlers(app, g)
 	InstallLibraryHandlers(app, g)
-	InstallSerieHandlers(app, g)
-	InstallSeasonHandlers(app, g)
+	InstallCollectionHandlers(app, g)
 
-	g = router.Group("/api/media")
+	// InstallSerieHandlers(app, g)
+	// InstallSeasonHandlers(app, g)
+
+	// TODO(patrik): Move
+	g = router.Group("/api/stream")
 	g.Register(
 		pyrin.NormalHandler{
 			Name:   "GetPlaylist",
@@ -73,7 +78,7 @@ func RegisterHandlers(app core.App, router pyrin.Router) {
 						fmt.Fprintf(w, "#EXTINF: %f,\n", leftover)
 					}
 
-					u := ConvertURL(c, fmt.Sprintf("/api/media/%v/segment%d.ts", id, segmentIndex))
+					u := ConvertURL(c, fmt.Sprintf("/api/stream/%v/segment%d.ts", id, segmentIndex))
 					fmt.Fprint(w, u+"\n")
 
 					leftover = leftover - hlsSegmentLength

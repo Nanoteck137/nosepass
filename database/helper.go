@@ -23,7 +23,7 @@ func addToRecordJson[T any](record goqu.Record, name string, change types.Change
 	}
 }
 
-func single[T any](db *Database, query *goqu.SelectDataset) (T, error) {
+func single[T any](db *Database, query ToSQL) (T, error) {
 	var item T
 	err := db.Get(&item, query)
 	if err != nil {

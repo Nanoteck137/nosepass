@@ -26,35 +26,11 @@ CREATE TABLE api_tokens (
     updated INTEGER NOT NULL
 );
 
-CREATE TABLE series (
+CREATE TABLE collections (
     id TEXT PRIMARY KEY,
+    path TEXT NOT NULL UNIQUE,
 
     name TEXT NOT NULL CHECK(name<>''),
-
-    created INTEGER NOT NULL,
-    updated INTEGER NOT NULL
-);
-
-CREATE TABLE seasons (
-    id TEXT PRIMARY KEY,
-    serie_id TEXT NOT NULL REFERENCES series(id) ON DELETE CASCADE,
-
-    name TEXT NOT NULL CHECK(name<>''),
-    number INTEGER NOT NULL, 
-    type TEXT NOT NULL,
-
-    created INTEGER NOT NULL,
-    updated INTEGER NOT NULL
-);
-
-CREATE TABLE episodes (
-    id TEXT PRIMARY KEY,
-    season_id TEXT NOT NULL REFERENCES seasons(id) ON DELETE CASCADE,
-
-    name TEXT NOT NULL CHECK(name<>''),
-    -- TODO(patrik): Should these be nullable?
-    season_number INTEGER,
-    serie_number INTEGER,
 
     created INTEGER NOT NULL,
     updated INTEGER NOT NULL
@@ -63,6 +39,9 @@ CREATE TABLE episodes (
 CREATE TABLE media (
     id TEXT PRIMARY KEY,
     path TEXT NOT NULL UNIQUE,
+
+    collection_id TEXT NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
+
     file_modified_time INTEGER NOT NULL,
 
     chapters TEXT NOT NULL,
@@ -87,11 +66,6 @@ CREATE TABLE media_variants (
 
     created INTEGER NOT NULL,
     updated INTEGER NOT NULL
-);
-
-CREATE TABLE media_episodes (
-    media_id TEXT NOT NULL REFERENCES media(id) ON DELETE CASCADE,
-    episode_id TEXT NOT NULL REFERENCES episodes(id) ON DELETE CASCADE
 );
 
 -- +goose Down

@@ -195,6 +195,82 @@
       ]
     },
     {
+      "name": "EntryInfo",
+      "extend": "",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "omit": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "omit": false
+        }
+      ]
+    },
+    {
+      "name": "GetEntries",
+      "extend": "",
+      "fields": [
+        {
+          "name": "entries",
+          "type": "[]EntryInfo",
+          "omit": false
+        }
+      ]
+    },
+    {
+      "name": "Entry",
+      "extend": "",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "omit": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "omit": false
+        }
+      ]
+    },
+    {
+      "name": "CreateEntry",
+      "extend": "",
+      "fields": [
+        {
+          "name": "id",
+          "type": "string",
+          "omit": false
+        }
+      ]
+    },
+    {
+      "name": "CreateEntryBody",
+      "extend": "",
+      "fields": [
+        {
+          "name": "name",
+          "type": "string",
+          "omit": false
+        }
+      ]
+    },
+    {
+      "name": "EditEntryBody",
+      "extend": "",
+      "fields": [
+        {
+          "name": "name",
+          "type": "*string",
+          "omit": false
+        }
+      ]
+    },
+    {
       "name": "Media",
       "extend": "",
       "fields": [
@@ -222,37 +298,21 @@
       ]
     },
     {
-      "name": "MediaAudio",
+      "name": "MediaVariant",
       "extend": "",
       "fields": [
         {
-          "name": "index",
-          "type": "int",
-          "omit": false
-        },
-        {
-          "name": "language",
-          "type": "string",
-          "omit": false
-        }
-      ]
-    },
-    {
-      "name": "MediaSubtitle",
-      "extend": "",
-      "fields": [
-        {
-          "name": "index",
-          "type": "int",
-          "omit": false
-        },
-        {
-          "name": "language",
+          "name": "id",
           "type": "string",
           "omit": false
         },
         {
-          "name": "title",
+          "name": "name",
+          "type": "string",
+          "omit": false
+        },
+        {
+          "name": "language",
           "type": "string",
           "omit": false
         }
@@ -273,13 +333,8 @@
           "omit": false
         },
         {
-          "name": "audioTracks",
-          "type": "[]MediaAudio",
-          "omit": false
-        },
-        {
-          "name": "subtitles",
-          "type": "[]MediaSubtitle",
+          "name": "variants",
+          "type": "[]MediaVariant",
           "omit": false
         }
       ]
@@ -296,7 +351,7 @@
       ]
     },
     {
-      "name": "Serie",
+      "name": "Collection",
       "extend": "",
       "fields": [
         {
@@ -312,34 +367,18 @@
       ]
     },
     {
-      "name": "GetSeries",
+      "name": "GetCollections",
       "extend": "",
       "fields": [
         {
-          "name": "series",
-          "type": "[]Serie",
+          "name": "collections",
+          "type": "[]Collection",
           "omit": false
         }
       ]
     },
     {
-      "name": "SerieSeason",
-      "extend": "",
-      "fields": [
-        {
-          "name": "id",
-          "type": "string",
-          "omit": false
-        },
-        {
-          "name": "name",
-          "type": "string",
-          "omit": false
-        }
-      ]
-    },
-    {
-      "name": "GetSerieById",
+      "name": "FullCollection",
       "extend": "",
       "fields": [
         {
@@ -353,71 +392,8 @@
           "omit": false
         },
         {
-          "name": "seasons",
-          "type": "[]SerieSeason",
-          "omit": false
-        }
-      ]
-    },
-    {
-      "name": "SeasonEpisodeVariant",
-      "extend": "",
-      "fields": [
-        {
-          "name": "id",
-          "type": "string",
-          "omit": false
-        },
-        {
-          "name": "name",
-          "type": "string",
-          "omit": false
-        },
-        {
-          "name": "language",
-          "type": "string",
-          "omit": false
-        }
-      ]
-    },
-    {
-      "name": "SeasonEpisode",
-      "extend": "",
-      "fields": [
-        {
-          "name": "id",
-          "type": "string",
-          "omit": false
-        },
-        {
-          "name": "name",
-          "type": "string",
-          "omit": false
-        },
-        {
-          "name": "variants",
-          "type": "[]SeasonEpisodeVariant",
-          "omit": false
-        }
-      ]
-    },
-    {
-      "name": "GetSeasonById",
-      "extend": "",
-      "fields": [
-        {
-          "name": "id",
-          "type": "string",
-          "omit": false
-        },
-        {
-          "name": "name",
-          "type": "string",
-          "omit": false
-        },
-        {
-          "name": "episodes",
-          "type": "[]SeasonEpisode",
+          "name": "media",
+          "type": "[]FullMedia",
           "omit": false
         }
       ]
@@ -488,6 +464,41 @@
       "bodyType": ""
     },
     {
+      "name": "GetEntries",
+      "method": "GET",
+      "path": "/api/v1/entries",
+      "responseType": "GetEntries",
+      "bodyType": ""
+    },
+    {
+      "name": "GetEntryById",
+      "method": "GET",
+      "path": "/api/v1/entries/:id",
+      "responseType": "Entry",
+      "bodyType": ""
+    },
+    {
+      "name": "CreateEntry",
+      "method": "POST",
+      "path": "/api/v1/entries",
+      "responseType": "CreateEntry",
+      "bodyType": "CreateEntryBody"
+    },
+    {
+      "name": "EditEntry",
+      "method": "PATCH",
+      "path": "/api/v1/entries/:id",
+      "responseType": "",
+      "bodyType": "EditEntryBody"
+    },
+    {
+      "name": "DeleteEntry",
+      "method": "DELETE",
+      "path": "/api/v1/entries/:id",
+      "responseType": "",
+      "bodyType": ""
+    },
+    {
       "name": "GetMedia",
       "method": "GET",
       "path": "/api/v1/media",
@@ -516,24 +527,17 @@
       "bodyType": ""
     },
     {
-      "name": "GetSeries",
+      "name": "GetCollections",
       "method": "GET",
-      "path": "/api/v1/series",
-      "responseType": "GetSeries",
+      "path": "/api/v1/collections",
+      "responseType": "GetCollections",
       "bodyType": ""
     },
     {
-      "name": "GetSerieById",
+      "name": "GetCollectionById",
       "method": "GET",
-      "path": "/api/v1/series/:id",
-      "responseType": "GetSerieById",
-      "bodyType": ""
-    },
-    {
-      "name": "GetSeasonById",
-      "method": "GET",
-      "path": "/api/v1/seasons/:id",
-      "responseType": "GetSeasonById",
+      "path": "/api/v1/collections/:id",
+      "responseType": "FullCollection",
       "bodyType": ""
     }
   ],
@@ -542,12 +546,12 @@
     {
       "name": "GetPlaylist",
       "method": "GET",
-      "path": "/api/media/:id/index.m3u8"
+      "path": "/api/stream/:id/index.m3u8"
     },
     {
       "name": "GetSegment",
       "method": "GET",
-      "path": "/api/media/:id/:segment"
+      "path": "/api/stream/:id/:segment"
     }
   ]
 }

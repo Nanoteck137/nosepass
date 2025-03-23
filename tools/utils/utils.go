@@ -16,9 +16,11 @@ import (
 var CreateId = createIdGenerator(32)
 var CreateSmallId = createIdGenerator(8)
 
-var CreateSerieId = createIdGenerator(10)
-var CreateSeasonId = createIdGenerator(16)
+var CreateEntryId = createIdGenerator(10)
 var CreateEpisodeId = createIdGenerator(32)
+
+var CreateCollectionId = createIdGenerator(32)
+var CreateMediaCollectionId = createIdGenerator(32)
 
 var CreateMediaId = createIdGenerator(32)
 var CreateMediaVariantId = createIdGenerator(32)

@@ -44,6 +44,26 @@ export class ApiClient extends BaseApiClient {
     return this.request(`/api/v1/user/apitoken/${id}`, "DELETE", z.undefined(), z.any(), undefined, options)
   }
   
+  getEntries(options?: ExtraOptions) {
+    return this.request("/api/v1/entries", "GET", api.GetEntries, z.any(), undefined, options)
+  }
+  
+  getEntryById(id: string, options?: ExtraOptions) {
+    return this.request(`/api/v1/entries/${id}`, "GET", api.Entry, z.any(), undefined, options)
+  }
+  
+  createEntry(body: api.CreateEntryBody, options?: ExtraOptions) {
+    return this.request("/api/v1/entries", "POST", api.CreateEntry, z.any(), body, options)
+  }
+  
+  editEntry(id: string, body: api.EditEntryBody, options?: ExtraOptions) {
+    return this.request(`/api/v1/entries/${id}`, "PATCH", z.undefined(), z.any(), body, options)
+  }
+  
+  deleteEntry(id: string, options?: ExtraOptions) {
+    return this.request(`/api/v1/entries/${id}`, "DELETE", z.undefined(), z.any(), undefined, options)
+  }
+  
   getMedia(options?: ExtraOptions) {
     return this.request("/api/v1/media", "GET", api.GetMedia, z.any(), undefined, options)
   }
@@ -60,15 +80,11 @@ export class ApiClient extends BaseApiClient {
     return this.request("/api/v1/library", "POST", z.undefined(), z.any(), undefined, options)
   }
   
-  getSeries(options?: ExtraOptions) {
-    return this.request("/api/v1/series", "GET", api.GetSeries, z.any(), undefined, options)
+  getCollections(options?: ExtraOptions) {
+    return this.request("/api/v1/collections", "GET", api.GetCollections, z.any(), undefined, options)
   }
   
-  getSerieById(id: string, options?: ExtraOptions) {
-    return this.request(`/api/v1/series/${id}`, "GET", api.GetSerieById, z.any(), undefined, options)
-  }
-  
-  getSeasonById(id: string, options?: ExtraOptions) {
-    return this.request(`/api/v1/seasons/${id}`, "GET", api.GetSeasonById, z.any(), undefined, options)
+  getCollectionById(id: string, options?: ExtraOptions) {
+    return this.request(`/api/v1/collections/${id}`, "GET", api.FullCollection, z.any(), undefined, options)
   }
 }
