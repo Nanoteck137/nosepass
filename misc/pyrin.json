@@ -298,22 +298,64 @@
       ]
     },
     {
-      "name": "MediaVariant",
+      "name": "MediaAudioTrack",
       "extend": "",
       "fields": [
         {
-          "name": "id",
+          "name": "index",
+          "type": "int",
+          "omit": false
+        },
+        {
+          "name": "language",
+          "type": "string",
+          "omit": false
+        }
+      ]
+    },
+    {
+      "name": "MediaSubtitle",
+      "extend": "",
+      "fields": [
+        {
+          "name": "index",
+          "type": "int",
+          "omit": false
+        },
+        {
+          "name": "type",
           "type": "string",
           "omit": false
         },
         {
-          "name": "name",
+          "name": "title",
           "type": "string",
           "omit": false
         },
         {
           "name": "language",
           "type": "string",
+          "omit": false
+        },
+        {
+          "name": "isDefault",
+          "type": "bool",
+          "omit": false
+        }
+      ]
+    },
+    {
+      "name": "MediaVariant",
+      "extend": "",
+      "fields": [
+        {
+          "name": "audio_track",
+          "type": "int",
+          "omit": false
+        },
+        {
+          "name": "subtitle",
+          "type": "*int",
           "omit": false
         }
       ]
@@ -333,8 +375,23 @@
           "omit": false
         },
         {
-          "name": "variants",
-          "type": "[]MediaVariant",
+          "name": "audioTracks",
+          "type": "[]MediaAudioTrack",
+          "omit": false
+        },
+        {
+          "name": "subtitles",
+          "type": "[]MediaSubtitle",
+          "omit": false
+        },
+        {
+          "name": "subVariant",
+          "type": "*MediaVariant",
+          "omit": false
+        },
+        {
+          "name": "dubVariant",
+          "type": "*MediaVariant",
           "omit": false
         }
       ]

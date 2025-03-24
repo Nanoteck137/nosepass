@@ -114,17 +114,34 @@ export const GetMedia = z.object({
 });
 export type GetMedia = z.infer<typeof GetMedia>;
 
-export const MediaVariant = z.object({
-  id: z.string(),
-  name: z.string(),
+export const MediaAudioTrack = z.object({
+  index: z.number(),
   language: z.string(),
+});
+export type MediaAudioTrack = z.infer<typeof MediaAudioTrack>;
+
+export const MediaSubtitle = z.object({
+  index: z.number(),
+  type: z.string(),
+  title: z.string(),
+  language: z.string(),
+  isDefault: z.boolean(),
+});
+export type MediaSubtitle = z.infer<typeof MediaSubtitle>;
+
+export const MediaVariant = z.object({
+  audio_track: z.number(),
+  subtitle: z.number().nullable(),
 });
 export type MediaVariant = z.infer<typeof MediaVariant>;
 
 export const FullMedia = z.object({
   id: z.string(),
   path: z.string(),
-  variants: z.array(MediaVariant),
+  audioTracks: z.array(MediaAudioTrack),
+  subtitles: z.array(MediaSubtitle),
+  subVariant: MediaVariant.nullable(),
+  dubVariant: MediaVariant.nullable(),
 });
 export type FullMedia = z.infer<typeof FullMedia>;
 

@@ -15,17 +15,34 @@ type Media struct {
 	Path string `json:"path"`
 }
 
-type MediaVariant struct {
-	Id       string `json:"id"`
-	Name     string `json:"name"`
+type MediaSubtitle struct {
+	Index     int    `json:"index"`
+	Type      string `json:"type"`
+	Title     string `json:"title"`
+	Language  string `json:"language"`
+	// TODO(patrik): Add to audio track
+	IsDefault bool   `json:"isDefault"`
+}
+
+type MediaAudioTrack struct {
+	Index    int    `json:"index"`
 	Language string `json:"language"`
+}
+
+type MediaVariant struct {
+	AudioTrack int    `json:"audio_track"`
+	Subtitle   *int64 `json:"subtitle"`
 }
 
 type FullMedia struct {
 	Id   string `json:"id"`
 	Path string `json:"path"`
 
-	Variants []MediaVariant `json:"variants"`
+	AudioTracks []MediaAudioTrack `json:"audioTracks"`
+	Subtitles   []MediaSubtitle   `json:"subtitles"`
+
+	SubVariant *MediaVariant `json:"subVariant"`
+	DubVariant *MediaVariant `json:"dubVariant"`
 }
 
 type GetMedia struct {
@@ -83,19 +100,30 @@ func InstallMediaHandlers(app core.App, group pyrin.Group) {
 					return nil, err
 				}
 
-				variants := media.Variants.GetOrEmpty()
+				audioTracks := media.AudioTracks.GetOrEmpty()
+				subtitles := media.Subtitles.GetOrEmpty()
 
 				res := FullMedia{
 					Id:          media.Id,
 					Path:        media.Path,
-					Variants: make([]MediaVariant, len(variants)),
+					AudioTracks: make([]MediaAudioTrack, len(audioTracks)),
+					Subtitles:   make([]MediaSubtitle, len(subtitles)),
 				}
 
-				for i, variant := range variants {
-					res.Variants[i] = MediaVariant{
-						Id:       variant.Id,
-						Name:     variant.Name,
-						Language: variant.Language,
+				for i, audio := range audioTracks {
+					res.AudioTracks[i] = MediaAudioTrack{
+						Index:    audio.AudioIndex,
+						Language: audio.Language,
+					}
+				}
+
+				for i, subtitle := range subtitles {
+					res.Subtitles[i] = MediaSubtitle{
+						Index:     subtitle.SubtitleIndex,
+						Type:      subtitle.Type,
+						Title:     subtitle.Title,
+						Language:  subtitle.Language,
+						IsDefault: subtitle.IsDefault,
 					}
 				}
 

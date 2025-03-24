@@ -5,92 +5,55 @@
   const { data } = $props();
 
   let error = $state<string>();
-  let videoUrl = $state<string>();
+  let media = $state<(typeof data.collection.media)[number]>();
 
-  const languages = $derived(getAvailableLanguages());
-  let languageSelected = $state(getAvailableLanguages()[0]);
+  let videoUrl = $derived(getVideoUrl());
 
-  function getAvailableLanguages() {
-    const l = data.collection.media.map((e) =>
-      e.variants.map((v) => v.language),
-    );
+  // TODO(patrik): Get default audio track from data
+  let audioIndex = $state(0);
+  // TODO(patrik): Get default subtitle from data
+  let subtitleIndex = $state(0);
 
-    const all = l.reduce((p, n) => {
-      return p.concat(n);
-    });
+  function getVideoUrl() {
+    if (!media) {
+      return null;
+    }
 
-    return Array.from(new Set(all));
+    return `${data.apiAddress}/api/stream2/${media.id}/index.m3u8?audio=${audioIndex}&subtitle=${subtitleIndex}`;
   }
 </script>
 
 <p>{data.collection.name}</p>
 
-{#if videoUrl !== undefined}
-  <VideoPlayer bind:videoUrl {error} />
+{#if !!media}
+  <VideoPlayer
+    videoUrl={videoUrl!}
+    {error}
+    audioTracks={media.audioTracks.map((t) => ({
+      index: t.index,
+      name: t.language,
+    }))}
+    subtitles={media.subtitles.map((s) => ({
+      index: s.index,
+      title: s.title,
+    }))}
+    onAudioTrackSelected={(index) => {
+      audioIndex = index;
+    }}
+    onSubtitleSelected={(index) => {
+      subtitleIndex = index;
+    }}
+  />
 {/if}
 
-<Select.Root type="single" bind:value={languageSelected}>
-  <Select.Trigger class="w-[180px]">
-    {languageSelected}
-  </Select.Trigger>
-  <Select.Content>
-    <Select.Group>
-      <Select.GroupHeading>Languages</Select.GroupHeading>
-      {#each languages as language}
-        <Select.Item value={language} label={language} />
-      {/each}
-    </Select.Group>
-  </Select.Content>
-</Select.Root>
-
-<div class="flex">
-  {#each languages as language}
-    <Button
-      onclick={() => {
-        type Episode = {
-          name: string;
-          url: string | null;
-        };
-
-        const episodes = data.collection.media.map((e) => {
-          const variant = e.variants.find((v) => v.language === language);
-
-          return {
-            name: e.path,
-            url: variant
-              ? `${data.apiAddress}/api/stream/${variant.id}/index.m3u8`
-              : null,
-          } as Episode;
-        });
-
-        console.log(episodes);
-      }}
-    >
-      {language}
-    </Button>
-  {/each}
-</div>
-
 <div class="flex flex-col gap-2">
-  {#each data.collection.media as media}
+  {#each data.collection.media as m}
     <Button
       onclick={() => {
-        // const variant = episode.variants[0];
-        const variant = media.variants.find(
-          (v) => v.language === languageSelected,
-        );
-
-        if (!variant) {
-          error = "No video with language available";
-          videoUrl = "";
-          return;
-        }
-
-        videoUrl = `${data.apiAddress}/api/stream/${variant.id}/index.m3u8`;
+        media = m;
       }}
-      disabled={!media.variants.filter((v) => v.language === languageSelected)}
     >
-      {media.path}
+      {m.path}
     </Button>
   {/each}
 </div>

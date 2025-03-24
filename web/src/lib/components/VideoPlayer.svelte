@@ -12,12 +12,35 @@
 
   const MOVE_AMOUNT = 10;
 
+  type AudioTrack = {
+    index: number;
+    name: string;
+  };
+
+  type Subtitle = {
+    index: number;
+    title: string;
+  };
+
   type Props = {
     videoUrl: string;
     error?: string;
+
+    audioTracks: AudioTrack[];
+    subtitles: Subtitle[];
+
+    onAudioTrackSelected?: (index: number) => void;
+    onSubtitleSelected?: (index: number) => void;
   };
 
-  const { videoUrl = $bindable(), error }: Props = $props();
+  const {
+    videoUrl = $bindable(),
+    error,
+    audioTracks,
+    subtitles,
+    onAudioTrackSelected,
+    onSubtitleSelected,
+  }: Props = $props();
 
   type VideoState = "playing" | "paused";
   let videoState = $state<VideoState>("paused");
@@ -361,19 +384,21 @@
 
           <DropdownMenu.Content align="end">
             <DropdownMenu.Group>
-              <!-- {#each data.media.audioTracks as track}
+              {#each audioTracks as track}
                 <DropdownMenu.Item
                   onSelect={() => {
-                    audioIndex = track.index;
-                    hls?.loadSource(
-                      `${data.apiAddress}/${data.media.id}/index.m3u8?audio=${audioIndex}&subtitle=${subtitleIndex}`,
-                    );
-                    video.currentTime = time;
+                    onAudioTrackSelected?.(track.index);
+                    const t = time;
+                    setTimeout(() => {
+                      if (video) {
+                        video.currentTime = t;
+                      }
+                    }, 0);
                   }}
                 >
-                  {track.language}
+                  {track.name}
                 </DropdownMenu.Item>
-              {/each} -->
+              {/each}
             </DropdownMenu.Group>
           </DropdownMenu.Content>
         </DropdownMenu.Root>
@@ -390,31 +415,34 @@
 
           <DropdownMenu.Content align="end">
             <DropdownMenu.Group>
-              <!-- <DropdownMenu.Item
+              <DropdownMenu.Item
                 onSelect={() => {
-                  subtitleIndex = -1;
-                  hls?.loadSource(
-                    `${data.apiAddress}/${data.media.id}/index.m3u8?audio=${audioIndex}&subtitle=${subtitleIndex}`,
-                  );
-                  video.currentTime = time;
+                  onSubtitleSelected?.(-1);
+                  const t = time;
+                  setTimeout(() => {
+                    if (video) {
+                      video.currentTime = t;
+                    }
+                  }, 0);
                 }}
               >
                 No subtitles
               </DropdownMenu.Item>
-              {#each data.media.subtitles as subtitle}
+              {#each subtitles as subtitle}
                 <DropdownMenu.Item
                   onSelect={() => {
-                    subtitleIndex = subtitle.index;
-                    hls?.loadSource(
-                      `${data.apiAddress}/${data.media.id}/index.m3u8?audio=${audioIndex}&subtitle=${subtitleIndex}`,
-                    );
-                    video.currentTime = time;
+                    onSubtitleSelected?.(subtitle.index);
+                    const t = time;
+                    setTimeout(() => {
+                      if (video) {
+                        video.currentTime = t;
+                      }
+                    }, 0);
                   }}
                 >
-                  {subtitle.title} -
-                  {subtitle.language}
+                  {subtitle.title}
                 </DropdownMenu.Item>
-              {/each} -->
+              {/each}
             </DropdownMenu.Group>
           </DropdownMenu.Content>
         </DropdownMenu.Root>

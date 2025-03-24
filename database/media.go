@@ -45,11 +45,6 @@ type MediaAudioTrack struct {
 }
 
 type MediaVariantInfo struct {
-	Id string `json:"id"`
-
-	Name       string `json:"name"`
-	Language   string `json:"language"`
-	VideoTrack int    `json:"video_track"`
 	AudioTrack int    `json:"audio_track"`
 	Subtitle   *int64 `json:"subtitle"`
 }
@@ -70,38 +65,39 @@ type Media struct {
 	VideoTracks JsonColumn[[]MediaVideoTrack] `db:"video_tracks"`
 	AudioTracks JsonColumn[[]MediaAudioTrack] `db:"audio_tracks"`
 
+	SubVariant JsonColumn[MediaVariant] `db:"sub_variant"`
+	DubVariant JsonColumn[MediaVariant] `db:"dub_variant"`
+
 	Created int64 `db:"created"`
 	Updated int64 `db:"updated"`
-
-	Variants JsonColumn[[]MediaVariantInfo] `db:"variants"`
 }
 
 func MediaQuery() *goqu.SelectDataset {
-	variants := dialect.From("media_variants").
-		Select(
-			goqu.I("media_variants.media_id").As("media_id"),
-
-			goqu.Func(
-				"json_group_array",
-				goqu.Func(
-					"json_object",
-
-					"id",
-					goqu.I("media_variants.id"),
-					"name",
-					goqu.I("media_variants.name"),
-					"language",
-					goqu.I("media_variants.language"),
-					"video_track",
-					goqu.I("media_variants.video_track"),
-					"audio_track",
-					goqu.I("media_variants.audio_track"),
-					"subtitle",
-					goqu.I("media_variants.subtitle"),
-				),
-			).As("variants"),
-		).
-		GroupBy(goqu.I("media_variants.media_id"))
+	// variants := dialect.From("media_variants").
+	// 	Select(
+	// 		goqu.I("media_variants.media_id").As("media_id"),
+	//
+	// 		goqu.Func(
+	// 			"json_group_array",
+	// 			goqu.Func(
+	// 				"json_object",
+	//
+	// 				"id",
+	// 				goqu.I("media_variants.id"),
+	// 				"name",
+	// 				goqu.I("media_variants.name"),
+	// 				"language",
+	// 				goqu.I("media_variants.language"),
+	// 				"video_track",
+	// 				goqu.I("media_variants.video_track"),
+	// 				"audio_track",
+	// 				goqu.I("media_variants.audio_track"),
+	// 				"subtitle",
+	// 				goqu.I("media_variants.subtitle"),
+	// 			),
+	// 		).As("variants"),
+	// 	).
+	// 	GroupBy(goqu.I("media_variants.media_id"))
 
 	query := dialect.From("media").
 		Select(
@@ -120,16 +116,19 @@ func MediaQuery() *goqu.SelectDataset {
 			"media.video_tracks",
 			"media.audio_tracks",
 
+			"media.sub_variant",
+			"media.dub_variant",
+
 			"media.updated",
 			"media.created",
 
-			goqu.I("variants.variants").As("variants"),
+			// goqu.I("variants.variants").As("variants"),
 		).
-		Prepared(true).
-		LeftJoin(
-			variants.As("variants"),
-			goqu.On(goqu.I("media.id").Eq(goqu.I("variants.media_id"))),
-		)
+		Prepared(true)
+		// LeftJoin(
+		// 	variants.As("variants"),
+		// 	goqu.On(goqu.I("media.id").Eq(goqu.I("variants.media_id"))),
+		// )
 
 	return query
 }
@@ -187,6 +186,9 @@ type CreateMediaParams struct {
 	VideoTracks []MediaVideoTrack
 	AudioTracks []MediaAudioTrack
 
+	SubVariant MediaVariant
+	DubVariant MediaVariant
+
 	Created int64
 	Updated int64
 }
@@ -220,6 +222,9 @@ func (db *Database) CreateMedia(ctx context.Context, params CreateMediaParams) (
 		"video_tracks": NewJsonColumn(params.VideoTracks),
 		"audio_tracks": NewJsonColumn(params.AudioTracks),
 
+		"sub_variant": NewJsonColumn(params.SubVariant),
+		"dub_variant": NewJsonColumn(params.DubVariant),
+
 		"created": created,
 		"updated": updated,
 	}).
@@ -238,6 +243,9 @@ func (db *Database) CreateMedia(ctx context.Context, params CreateMediaParams) (
 			"media.attachments",
 			"media.video_tracks",
 			"media.audio_tracks",
+
+			"media.sub_variant",
+			"media.dub_variant",
 
 			"media.updated",
 			"media.created",
@@ -262,6 +270,9 @@ type MediaChanges struct {
 	VideoTracks types.Change[[]MediaVideoTrack]
 	AudioTracks types.Change[[]MediaAudioTrack]
 
+	SubVariant types.Change[MediaVariant]
+	DubVariant types.Change[MediaVariant]
+
 	Created types.Change[int64]
 }
 
@@ -275,6 +286,9 @@ func (db *Database) UpdateMedia(ctx context.Context, id string, changes MediaCha
 	addToRecordJson(record, "attachments", changes.Attachments)
 	addToRecordJson(record, "video_tracks", changes.VideoTracks)
 	addToRecordJson(record, "audio_tracks", changes.AudioTracks)
+
+	addToRecordJson(record, "sub_variant", changes.SubVariant)
+	addToRecordJson(record, "dub_variant", changes.DubVariant)
 
 	addToRecord(record, "created", changes.Created)
 

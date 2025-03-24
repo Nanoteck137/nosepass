@@ -2,7 +2,6 @@ package apis
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
@@ -297,77 +296,77 @@ func syncLibrary(app core.App) error {
 					return err
 				}
 
-				variants := media.Variants.GetOrEmpty()
-				if len(variants) <= 0 {
-					for _, audio := range data.audioTracks {
-						switch audio.Language {
-						case "eng":
-							_, err := app.DB().CreateMediaVariant(ctx, database.CreateMediaVariantParams{
-								MediaId:    media.Id,
-								Name:       "English",
-								Language:   "en",
-								VideoTrack: 0,
-								AudioTrack: audio.AudioIndex,
-								// Subtitle:   sql.NullString{},
-							})
-							if err != nil {
-								return err
-							}
-						case "und":
-							subIndex := int64(-1)
-
-							// TODO(patrik): Better selection
-							for _, subtitle := range data.subtitles {
-								if subtitle.IsDefault {
-									subIndex = int64(subtitle.SubtitleIndex)
-									break
-								}
-							}
-
-							_, err := app.DB().CreateMediaVariant(ctx, database.CreateMediaVariantParams{
-								MediaId:    media.Id,
-								Name:       "Undefined",
-								Language:   "und",
-								VideoTrack: 0,
-								AudioTrack: audio.AudioIndex,
-								Subtitle: sql.NullInt64{
-									Int64: subIndex,
-									Valid: subIndex != -1,
-								},
-							})
-							if err != nil {
-								return err
-							}
-						case "jpn":
-							subIndex := int64(-1)
-
-							// TODO(patrik): Better selection
-							for _, subtitle := range data.subtitles {
-								if subtitle.IsDefault {
-									subIndex = int64(subtitle.SubtitleIndex)
-									break
-								}
-							}
-
-							_, err := app.DB().CreateMediaVariant(ctx, database.CreateMediaVariantParams{
-								MediaId:    media.Id,
-								Name:       "Japanese",
-								Language:   "jp",
-								VideoTrack: 0,
-								AudioTrack: audio.AudioIndex,
-								Subtitle: sql.NullInt64{
-									Int64: subIndex,
-									Valid: subIndex != -1,
-								},
-							})
-							if err != nil {
-								return err
-							}
-						default:
-							log.Warn("Unsupported audio language", "path", media.Path, "language", audio.Language)
-						}
-					}
-				}
+			// 	variants := media.Variants.GetOrEmpty()
+			// 	if len(variants) <= 0 {
+			// 		for _, audio := range data.audioTracks {
+			// 			switch audio.Language {
+			// 			case "eng":
+			// 				_, err := app.DB().CreateMediaVariant(ctx, database.CreateMediaVariantParams{
+			// 					MediaId:    media.Id,
+			// 					Name:       "English",
+			// 					Language:   "en",
+			// 					VideoTrack: 0,
+			// 					AudioTrack: audio.AudioIndex,
+			// 					// Subtitle:   sql.NullString{},
+			// 				})
+			// 				if err != nil {
+			// 					return err
+			// 				}
+			// 			case "und":
+			// 				subIndex := int64(-1)
+			//
+			// 				// TODO(patrik): Better selection
+			// 				for _, subtitle := range data.subtitles {
+			// 					if subtitle.IsDefault {
+			// 						subIndex = int64(subtitle.SubtitleIndex)
+			// 						break
+			// 					}
+			// 				}
+			//
+			// 				_, err := app.DB().CreateMediaVariant(ctx, database.CreateMediaVariantParams{
+			// 					MediaId:    media.Id,
+			// 					Name:       "Undefined",
+			// 					Language:   "und",
+			// 					VideoTrack: 0,
+			// 					AudioTrack: audio.AudioIndex,
+			// 					Subtitle: sql.NullInt64{
+			// 						Int64: subIndex,
+			// 						Valid: subIndex != -1,
+			// 					},
+			// 				})
+			// 				if err != nil {
+			// 					return err
+			// 				}
+			// 			case "jpn":
+			// 				subIndex := int64(-1)
+			//
+			// 				// TODO(patrik): Better selection
+			// 				for _, subtitle := range data.subtitles {
+			// 					if subtitle.IsDefault {
+			// 						subIndex = int64(subtitle.SubtitleIndex)
+			// 						break
+			// 					}
+			// 				}
+			//
+			// 				_, err := app.DB().CreateMediaVariant(ctx, database.CreateMediaVariantParams{
+			// 					MediaId:    media.Id,
+			// 					Name:       "Japanese",
+			// 					Language:   "jp",
+			// 					VideoTrack: 0,
+			// 					AudioTrack: audio.AudioIndex,
+			// 					Subtitle: sql.NullInt64{
+			// 						Int64: subIndex,
+			// 						Valid: subIndex != -1,
+			// 					},
+			// 				})
+			// 				if err != nil {
+			// 					return err
+			// 				}
+			// 			default:
+			// 				log.Warn("Unsupported audio language", "path", media.Path, "language", audio.Language)
+			// 			}
+			// 		}
+			// 	}
 			}
 
 			// serie, err := app.DB().GetSerieByName(ctx, serie.Name)

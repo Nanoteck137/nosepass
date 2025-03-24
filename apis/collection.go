@@ -85,20 +85,30 @@ func InstallCollectionHandlers(app core.App, group pyrin.Group) {
 				}
 
 				for i, m := range media {
-
-					variants := m.Variants.GetOrEmpty()
+					audioTracks := m.AudioTracks.GetOrEmpty()
+					subtitles := m.Subtitles.GetOrEmpty()
 
 					me := FullMedia{
-						Id:       m.Id,
-						Path:     m.Path,
-						Variants: make([]MediaVariant, len(variants)),
+						Id:          m.Id,
+						Path:        m.Path,
+						AudioTracks: make([]MediaAudioTrack, len(audioTracks)),
+						Subtitles:   make([]MediaSubtitle, len(subtitles)),
 					}
 
-					for i, variant := range variants {
-						me.Variants[i] = MediaVariant{
-							Id:       variant.Id,
-							Name:     variant.Name,
-							Language: variant.Language,
+					for i, audio := range audioTracks {
+						me.AudioTracks[i] = MediaAudioTrack{
+							Index:    audio.AudioIndex,
+							Language: audio.Language,
+						}
+					}
+
+					for i, subtitle := range subtitles {
+						me.Subtitles[i] = MediaSubtitle{
+							Index:     subtitle.SubtitleIndex,
+							Type:      subtitle.Type,
+							Title:     subtitle.Title,
+							Language:  subtitle.Language,
+							IsDefault: subtitle.IsDefault,
 						}
 					}
 

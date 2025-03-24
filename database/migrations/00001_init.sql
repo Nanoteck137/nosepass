@@ -50,6 +50,9 @@ CREATE TABLE media (
     video_tracks TEXT NOT NULL,
     audio_tracks TEXT NOT NULL,
 
+    sub_variant TEXT NOT NULL,
+    dub_variant TEXT NOT NULL,
+
     created INTEGER NOT NULL,
     updated INTEGER NOT NULL
 );
