@@ -6,3 +6,4 @@
 * [How to convert MP4 to HLS format with ffmpeg: A step-by-step guide](https://www.mux.com/articles/how-to-convert-mp4-to-hls-format-with-ffmpeg-a-step-by-step-guide)
 * [Kyoo](https://github.com/zoriya/Kyoo)
 * [gohls](https://github.com/shimberger/gohls)
+* [maelstrom](https://github.com/nvllsvm/maelstrom)
